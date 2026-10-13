@@ -1,7 +1,7 @@
 // Офлайн-режим расписания.
 // Страница: сначала сеть (чтобы обновления приходили сразу), без сети или при медленной сети — сохранённая копия.
 // Иконки и шрифты: из сохранённой копии, в фоне обновляются.
-const CACHE = "raspisanie-v5";
+const CACHE = "raspisanie-v4";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
