@@ -94,7 +94,7 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .viewport { overflow: hidden; touch-action: pan-y; }
 .track { display: flex; align-items: flex-start; width: 300%; transform: translate3d(-33.3333%, 0, 0); will-change: transform; }
 
-.pane { width: 33.3333%; box-sizing: border-box; padding: 0 20px 24px; min-height: 62vh; }
+.pane { width: 33.3333%; box-sizing: border-box; padding: 0 20px 24px; min-height: 62vh; contain: content; }
 .dayhead { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .dayTitle { font-size: 17px; font-weight: 600; }
 .dayCount { font-size: 12px; color: var(--muted); font-weight: 500; }
@@ -235,7 +235,7 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .gridwrap { position: relative; overflow-x: auto; margin-inline: -4px; padding: 2px 4px 4px; }
 .grid .gc.picked { box-shadow: inset 0 0 0 1.5px var(--accent-ink); }
 .pop {
-  position: absolute; z-index: 5; width: 236px; box-sizing: border-box; padding: 12px 14px; border-radius: 16px;
+  position: absolute; z-index: 5; width: 264px; max-width: calc(100% - 8px); box-sizing: border-box; padding: 12px 14px; border-radius: 16px;
   background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 14px 34px -14px rgba(58, 51, 64, .35);
   display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(4px) scale(.98); pointer-events: none;
   transition: opacity .25s var(--ease-soft), transform .35s var(--ease);
@@ -243,17 +243,18 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .pop.show { opacity: 1; transform: none; pointer-events: auto; }
 .pop .pi { display: flex; flex-direction: column; gap: 5px; }
 .pop .pi + .pi { padding-top: 10px; border-top: 1px solid var(--line); }
-.pop .phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.pop .pt { font-size: 14px; font-weight: 600; line-height: 1.3; min-width: 0; }
+.pop .pt { font-size: 14px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.pop .pfoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.pop .pfoot .copy { margin-left: auto; }
 .pop .copy {
-  flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px 4px 6px; margin: -2px -4px 0 0;
+  flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px 5px 7px;
   border-radius: 999px; background: var(--surface-2); color: var(--soft); font-size: 11.5px; font-weight: 600;
   transition: background-color .2s var(--ease-soft), color .2s var(--ease-soft);
 }
 .pop .copy svg.i { width: 14px; height: 14px; }
 .pop .copy.done { background: var(--accent-tint); color: var(--accent-ink); }
 .pop .pm { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 12.5px; color: var(--soft); }
-.pop .pw { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pop .pw { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .grid { display: grid; grid-template-columns: 40px repeat(6, minmax(46px, 1fr)); gap: 4px; min-width: 320px; }
 .grid.fade { animation: inF .22s var(--ease-soft) both; }
 .gh { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; padding: 4px 0 6px; }
@@ -400,7 +401,7 @@ const DAYS = ["пн","вт","ср","чт","пт","сб"];
 const DAYS_FULL = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-const ANCHOR = new Date(2026, 7, 31); // понедельник, с которого считается 1 неделя
+const ANCHOR = new Date(2026, 8, 7); // понедельник 1-й недели (неделя 12–17 октября — 2-я)
 const WEEKS_BACK = 10, WEEKS_FWD = 30;
 
 // ---------- иконки предметов ----------
@@ -452,10 +453,10 @@ const ECG_PATH = "M0 13 " + Array(15).fill(BEAT).join(" ");
 // ---------- хранилище (на этом телефоне) ----------
 function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function sset(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
-let flip = sget("flip") === "1";
+let flip = sget("flip-w2") === "1";
 let edits = { t: {}, d: {} };
 try { const raw = JSON.parse(sget("edits") || "null"); if (raw && raw.t && raw.d) edits = raw; } catch (e) {}
-const saveEdits = () => sset("edits", JSON.stringify(edits));
+const saveEdits = () => { marksDirty = true; return sset("edits", JSON.stringify(edits)); };
 
 // ---------- даты ----------
 const DAY_MS = 86400000;
@@ -510,7 +511,9 @@ const btns = days.map((d, i) => {
   strip.appendChild(b);
   return b;
 });
-const weekW = () => (btns[6].offsetLeft - btns[0].offsetLeft) || 1;
+let _weekW = 0;
+const weekW = () => _weekW || (_weekW = btns[6].offsetLeft - btns[0].offsetLeft) || 1;
+window.addEventListener("resize", () => { _weekW = 0; });
 const firstWeek = () => Math.max(0, Math.round(strip.scrollLeft / weekW()));
 const scrollToWeek = (w, smooth) => strip.scrollTo({ left: w * weekW(), behavior: smooth ? "smooth" : "auto" });
 
@@ -521,10 +524,17 @@ function updateHeader() {
   $("weekChip").textContent = parityOf(mon) + " неделя";
   $("toToday").classList.toggle("off", mode === "grid" || (w === Math.floor(todayIdx / 6) && sel === todayIdx));
 }
+// Полоска дат обновляется точечно: меняются только два-три класса, а точки «есть пары» —
+// только после правок (marksDirty), а не при каждой перерисовке.
+let shownSel = -1, shownToday = -1, marksDirty = true;
 function updateStrip() {
-  const today = sod(new Date());
-  btns.forEach((b, i) => { b.classList.toggle("sel", i === sel); b.classList.toggle("today", +days[i] === +today); });
-  for (let i = 0; i < days.length; i++) btns[i].lastChild.lastChild.classList.toggle("none", lessonsFor(days[i]).length === 0);
+  const ti = days.findIndex(d => +d === +sod(new Date()));
+  if (shownSel !== sel) { if (btns[shownSel]) btns[shownSel].classList.remove("sel"); btns[sel].classList.add("sel"); shownSel = sel; }
+  if (shownToday !== ti) { if (btns[shownToday]) btns[shownToday].classList.remove("today"); if (btns[ti]) btns[ti].classList.add("today"); shownToday = ti; }
+  if (marksDirty) {
+    marksDirty = false;
+    for (let i = 0; i < days.length; i++) btns[i].lastChild.lastChild.classList.toggle("none", lessonsFor(days[i]).length === 0);
+  }
   updateHeader();
 }
 let raf = 0;
@@ -626,7 +636,8 @@ function attachHold(el, fire) {
     el.classList.add("holding");
     timer = setTimeout(() => {
       timer = 0; el.classList.remove("holding");
-      if (dragged || busy) return;
+      if (dragged || busy || (drag && drag.lock)) return;
+      openedByHold = true;
       try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
       fire();
     }, HOLD_MS);
@@ -644,6 +655,7 @@ function attachHold(el, fire) {
 // Один свайп = один день. Новый свайп во время анимации мгновенно завершает предыдущую.
 const track = $("track"), vp = $("vp");
 const SLIDE_MS = 280;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
 let busy = false, dragged = false, curX = 0, pending = null, drag = null;
 // ms > 0 — с анимацией этой длительности, иначе мгновенно (без единого кадра перехода)
 const setX = (px, ms) => {
@@ -658,11 +670,24 @@ function fill(pane, i) {
   pane.replaceChildren(...fresh.childNodes);
 }
 if (!track.children.length) for (let k = 0; k < 3; k++) track.appendChild(buildPane(-1));
+// высота области дня = высота открытого дня (соседние дни не добавляют пустоты внизу)
+function fitHeight() { vp.style.height = track.children[1].offsetHeight + "px"; }
+// пока день едет, область вмещает и соседний день целиком
+function openHeight() { vp.style.height = Math.max(...[...track.children].map(p => p.offsetHeight)) + "px"; }
+window.addEventListener("resize", () => { if (!busy && !drag) fitHeight(); });
+// по таймеру обновляется только видимый день (идёт / прошла / через N мин)
+function refreshCenter() {
+  if (busy || drag) return;
+  fill(track.children[1], sel);
+  fitHeight();
+  updateStrip();
+}
 function render(fade) {
   if (busy || drag) return;
   fill(track.children[0], sel - 1); fill(track.children[1], sel); fill(track.children[2], sel + 1);
   if (fade) { const it = track.children[1].querySelector(".items"); if (it) it.classList.add("fade"); }
   setX(0, false);
+  fitHeight();
   updateStrip();
 }
 function finish(target, dir) {
@@ -674,28 +699,31 @@ function finish(target, dir) {
   setX(0, false);
   if (+track.children[0].dataset.i !== sel - 1) fill(track.children[0], sel - 1);
   if (+track.children[2].dataset.i !== sel + 1) fill(track.children[2], sel + 1);
+  fitHeight();
   updateStrip();
   if (Math.floor(sel / 6) !== firstWeek()) scrollToWeek(Math.floor(sel / 6), true);
 }
-function settle() { setX(0, 220); }
+function settle() { setX(0, 220); setTimeout(() => { if (!busy && !drag) fitHeight(); }, 240); }
 function slide(dir, target) {
   if (target < 0 || target >= days.length) { settle(); return; }
   const w = vp.clientWidth;
   busy = true;
   const nb = track.children[dir > 0 ? 2 : 0];
   if (+nb.dataset.i !== target) fill(nb, target);
-  btns.forEach((b, i) => b.classList.toggle("sel", i === target));
+  openHeight();
+  if (btns[shownSel]) btns[shownSel].classList.remove("sel"); btns[target].classList.add("sel"); shownSel = target;
+  if (REDUCED.matches) { busy = false; finish(target, dir); return; }
   const to = -dir * w;
   const ms = Math.round(Math.max(160, SLIDE_MS * Math.abs(to - curX) / w));
   const end = e => { if (!e || (e.target === track && e.propertyName === "transform")) finish(target, dir); };
-  pending = { target, dir, end, timer: setTimeout(end, ms + 60) };
+  pending = { target, dir, end, started: performance.now(), timer: setTimeout(end, ms + 60) };
   track.addEventListener("transitionend", end);
   setX(to, ms);
 }
 function goTo(i) {
   if (pending) finish(pending.target, pending.dir);
   if (i === sel) return;
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { sel = i; render(); return; }
+  if (REDUCED.matches) { sel = i; render(); return; }
   slide(i > sel ? 1 : -1, i);
 }
 
@@ -703,7 +731,7 @@ vp.addEventListener("touchstart", e => {
   if (e.touches.length > 1) { drag = null; return; }
   if (pending) finish(pending.target, pending.dir);
   else if (track.classList.contains("anim")) setX(0, false);
-  drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now(), lock: null, lx: null };
+  drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now(), last: performance.now(), lock: null, lx: null };
 }, { passive: true });
 vp.addEventListener("touchmove", e => {
   if (!drag) return;
@@ -711,23 +739,27 @@ vp.addEventListener("touchmove", e => {
   if (drag.lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) drag.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
   if (drag.lock !== "x") return;
   e.preventDefault();
+  if (!drag.opened) { drag.opened = true; openHeight(); }
   dragged = true;
   let d = dx;
   if ((d > 0 && sel === 0) || (d < 0 && sel === days.length - 1)) d *= .3;
-  drag.lx = e.touches[0].clientX;
+  drag.px = drag.lx ?? drag.x; drag.pt = drag.lt ?? drag.t;
+  drag.lx = e.touches[0].clientX; drag.lt = drag.last = performance.now();
   setX(d, false);
 }, { passive: false });
 const endDrag = () => {
   if (!drag) return;
-  const { t, lock, x, lx } = drag;
+  const { t, lock, x, lx, px, pt, lt } = drag;
   drag = null;
   setTimeout(() => { dragged = false; }, 60);
   if (lock !== "x") { if (curX !== 0) settle(); return; }
   const dx = (lx ?? x) - x;
-  // любой осознанный свайп (от 40px или быстрый щелчок) — ровно один день
-  const fast = Math.abs(dx) / Math.max(1, performance.now() - t) > .25;
-  if (dx < -40 || (fast && dx < -12)) slide(1, sel + 1);
-  else if (dx > 40 || (fast && dx > 12)) slide(-1, sel - 1);
+  // любой осознанный свайп (от 24px или быстрый смах от 12px) — ровно один день
+  const vAll = Math.abs(dx) / Math.max(1, performance.now() - t);
+  const vEnd = lt && pt != null && lt > pt ? Math.abs((lx - px) / (lt - pt)) : 0;
+  const fast = vAll > .25 || vEnd > .3;
+  if (dx <= -24 || (fast && dx < -12)) slide(1, sel + 1);
+  else if (dx >= 24 || (fast && dx > 12)) slide(-1, sel - 1);
   else settle();
 };
 vp.addEventListener("touchend", endDrag);
@@ -735,15 +767,17 @@ vp.addEventListener("touchcancel", endDrag);
 
 // ---------- уведомление с отменой ----------
 let toastTimer = 0, undoSnap = null;
-function toast(text, snap) {
-  undoSnap = snap;
+// undo: строка-снимок правок или функция отмены
+function toast(text, undo) {
+  undoSnap = undo;
   $("toastText").textContent = text;
   $("toast").classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { $("toast").classList.remove("show"); undoSnap = null; }, 5000);
 }
 $("undo").onclick = () => {
-  if (undoSnap) { edits = JSON.parse(undoSnap); saveEdits(); render(true); }
+  if (typeof undoSnap === "function") undoSnap();
+  else if (undoSnap) { edits = JSON.parse(undoSnap); saveEdits(); render(true); if (mode === "grid") renderGrid(true); }
   undoSnap = null; clearTimeout(toastTimer); $("toast").classList.remove("show");
 };
 
@@ -768,7 +802,7 @@ $("fSubj").addEventListener("input", () => {
 });
 
 // ---------- редактор ----------
-let editing = null, openedAt = 0;
+let editing = null, openedAt = 0, openedByHold = false;
 function openSheet(item) {
   editing = item;
   const day = days[sel], p = parityOf(mondayOf(day));
@@ -802,7 +836,13 @@ function closeSheet() {
 const sheetOpen = () => $("sheetWrap").classList.contains("open");
 $("fPair").onchange = () => { $("customTime").hidden = $("fPair").value !== "custom"; };
 $("cancel").onclick = closeSheet;
-$("scrim").onclick = () => { if (performance.now() - openedAt > 450) closeSheet(); };
+$("scrim").onclick = () => {
+  // не закрывать от «хвоста» того же нажатия: отпускание после долгого нажатия или второй тап двойного нажатия
+  if (openedByHold) { openedByHold = false; return; }
+  if (performance.now() - openedAt < 350) return;
+  closeSheet();
+};
+document.addEventListener("pointerdown", () => { if (openedByHold && sheetOpen()) openedByHold = false; }, true);
 
 let sy = null;
 $("sheet").addEventListener("touchstart", e => { sy = $("sheet").scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
@@ -845,6 +885,7 @@ const showErr = t => { $("err").textContent = t; };
 
 $("sheet").onsubmit = e => {
   e.preventDefault();
+  if (!sheetOpen()) return;   // второй тап по «Сохранить», пока шторка уезжает
   const subj = $("fSubj").value.trim();
   if (!subj) { showErr("Впиши название предмета."); $("fSubj").focus(); return; }
   let s, en;
@@ -853,14 +894,14 @@ $("sheet").onsubmit = e => {
     if (!s || !en) { showErr("Укажи время начала и конца."); return; }
     if (mins(en) <= mins(s)) { showErr("Конец должен быть позже начала."); return; }
   } else { [s, en] = SLOTS[$("fPair").value]; }
-  const lesson = { id: editing ? editing.id : "u" + Date.now().toString(36), s: hhmm(s), e: hhmm(en), subj, kind: $("fKind").value, room: $("fRoom").value.trim() };
+  const lesson = { id: editing ? editing.id : "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), s: hhmm(s), e: hhmm(en), subj, kind: $("fKind").value, room: $("fRoom").value.trim() };
   if (pickedIcon !== "auto") lesson.icon = pickedIcon;
   const ok = saveLesson(lesson, $("scopeD").checked);
   if (!ok) { showErr("Не получилось сохранить на этом устройстве."); return; }
   closeSheet(); render(true);
 };
 $("del").onclick = () => {
-  if (!editing) return;
+  if (!editing || !sheetOpen()) return;
   const id = editing.id, name = editing.subj;
   const snap = JSON.stringify(edits);
   removeLesson(id, $("scopeD").checked);
@@ -900,6 +941,27 @@ function gridWeekStart() {
   if (parityOf(days[w * 6]) !== gridP) w += 1;
   return Math.min(w, days.length / 6 - 1) * 6;
 }
+// Подбор размера шрифта в клетках сетки: слова переносятся только по слогам (мягкий перенос)
+// или пробелам, никогда посреди буквосочетания. Если слог не влезает — шрифт чуть меньше.
+const _measure = document.createElement("canvas").getContext("2d");
+function fitGridLabels() {
+  const fam = getComputedStyle(document.body).fontFamily;
+  document.querySelectorAll("#grid .gn").forEach(el => {
+    el.style.fontSize = "";
+    const avail = el.clientWidth;
+    if (!avail) return;
+    const text = el.textContent;
+    const parts = text.split(/\s+/).flatMap(w => { const sy = w.split("\u00AD"); return sy.map((x, i) => i < sy.length - 1 ? x + "-" : x); });
+    const base = parseFloat(getComputedStyle(el).fontSize);
+    for (let size = base; size >= 8; size -= .5) {
+      _measure.font = `700 ${size}px ${fam}`;
+      if (parts.every(x => _measure.measureText(x).width <= avail)) { if (size !== base) el.style.fontSize = size + "px"; return; }
+    }
+    el.style.fontSize = "8px";
+  });
+}
+window.addEventListener("resize", () => { if (mode === "grid") fitGridLabels(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (mode === "grid") fitGridLabels(); });
 function renderGrid(fade) {
   const g = $("grid");
   const now = new Date(), today = sod(now), nowM = now.getHours() * 60 + now.getMinutes();
@@ -933,6 +995,7 @@ function renderGrid(fade) {
     });
   });
   g.innerHTML = h;
+  fitGridLabels();
   g.classList.remove("fade");
   if (fade) { void g.offsetWidth; g.classList.add("fade"); }
   hidePop();
@@ -956,10 +1019,10 @@ function showPop(cell, list) {
   const wd = +cell.dataset.wd;
   pop.innerHTML = list.map((it, n) => {
     const lec = isLecture(it.kind), pair = pairOf(it.s, it.e);
-    return `<div class="pi"><div class="phead"><div class="pt">${esc(it.subj)}</div>
-        <button type="button" class="copy" data-n="${n}" aria-label="Скопировать информацию о паре">${svg("copy")}<span>Копировать</span></button></div>
+    return `<div class="pi"><div class="pt">${esc(it.subj)}</div>
       <div class="pm"><span class="tag${lec ? " lec" : ""}">${esc(it.kind)}</span><span>${it.room ? esc(it.room) : "ауд. не указана"}</span></div>
-      <div class="pw">${hhmm(it.s)}–${hhmm(it.e)}${pair ? " · " + pair.replace("-", "–") + " пара" : ""}</div></div>`;
+      <div class="pfoot"><span class="pw">${hhmm(it.s)}–${hhmm(it.e)}${pair ? " · " + pair.replace("-", "–") + " пара" : ""}</span>
+        <button type="button" class="copy" data-n="${n}" aria-label="Скопировать информацию о паре">${svg("copy")}<span>Копировать</span></button></div></div>`;
   }).join("");
   pop.querySelectorAll(".copy").forEach(btn => btn.onclick = e => {
     e.stopPropagation();
@@ -1034,13 +1097,54 @@ function setMode(m, first) {
 $("modeSeg").querySelectorAll("button").forEach(b => b.onclick = () => { if (b.dataset.m !== mode) setMode(b.dataset.m); });
 
 $("toToday").onclick = () => { scrollToWeek(Math.floor(todayIdx / 6), true); goTo(todayIdx); };
-$("weekChip").onclick = () => { flip = !flip; sset("flip", flip ? "1" : "0"); render(true); if (mode === "grid") { gridP = homeParity(); renderGrid(true); } };
+function setFlip(v) {
+  flip = v; sset("flip-w2", flip ? "1" : "0"); marksDirty = true;
+  render(true); if (mode === "grid") { gridP = homeParity(); renderGrid(true); }
+}
+$("weekChip").onclick = () => {
+  setFlip(!flip);
+  toast(`Теперь эта неделя — ${parityOf(mondayOf(days[Math.floor(todayIdx / 6) * 6]))}-я`, () => setFlip(!flip));
+};
 
 render(true);
 setMode(mode, true);
 requestAnimationFrame(() => { scrollToWeek(Math.floor(todayIdx / 6), false); updateStrip(); });
-setInterval(() => { if (!sheetOpen() && !drag) { render(); if (mode === "grid" && !popCell) renderGrid(); } }, 30000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && !sheetOpen()) { render(); if (mode === "grid") renderGrid(); } });
+// ---------- живое время ----------
+// Обновление ровно на смене каждой минуты + сразу при возвращении в приложение.
+// Если касание «потерялось» (iPhone свернул приложение посреди жеста и не прислал touchend),
+// оно сбрасывается, иначе обновления блокировались бы и время «застревало».
+const loadedOn = dkey(new Date());
+const newDay = () => dkey(new Date()) !== loadedOn;
+function dropStaleGesture(force) {
+  if (drag && (force || performance.now() - drag.last > 3000)) { drag = null; dragged = false; if (!pending) settle(); }
+  if (pending && (force || performance.now() - pending.started > 1500)) finish(pending.target, pending.dir);
+}
+function tick(fromUser) {
+  dropStaleGesture(false);
+  if (newDay()) { location.reload(); return; }
+  if (sheetOpen() || drag || busy) return;
+  if (fromUser) render(); else refreshCenter();
+  if (mode === "grid" && !popCell) renderGrid();
+}
+let minuteTimer = 0;
+function scheduleMinute() {
+  clearTimeout(minuteTimer);
+  minuteTimer = setTimeout(() => { tick(false); scheduleMinute(); }, 60000 - (Date.now() % 60000) + 120);
+}
+scheduleMinute();
+function onReturn() { dropStaleGesture(true); tick(true); scheduleMinute(); }
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { dropStaleGesture(true); return; }
+  onReturn();
+});
+window.addEventListener("pageshow", e => { if (e.persisted) onReturn(); });
+window.addEventListener("focus", onReturn);
+window.addEventListener("pagehide", () => dropStaleGesture(true));
+
+// офлайн-режим: на своём сайте после первого открытия всё работает без интернета
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
