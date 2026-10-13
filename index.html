@@ -50,7 +50,7 @@ body {
 /* приложение, а не текст: долгое нажатие не выделяет и не копирует (кроме полей ввода) */
 html, body, button, .app, .sheet, .pop, .toast { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 input, select, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
-.app { max-width: 520px; margin: 0 auto; padding-block: 16px 48px; display: flex; flex-direction: column; }
+.app { max-width: 520px; margin: 0 auto; padding-block: 16px calc(84px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; }
 .pad { padding-inline: 20px; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 10px; }
@@ -63,7 +63,11 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .logo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .brand h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.2px; line-height: 1.15; }
 #month { font-size: 13px; color: var(--muted); font-weight: 500; }
-.top-r { display: flex; align-items: center; gap: 12px; }
+.top-r { display: flex; align-items: center; gap: 12px; flex: none; }
+.brand { min-width: 0; }
+.brand > div:last-child { min-width: 0; }
+.brand h1, #month { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 #toToday { color: var(--accent-ink); font-size: 14px; font-weight: 600; transition: opacity .4s var(--ease-soft); }
 #toToday.off { opacity: 0; pointer-events: none; }
 #weekChip { font-size: 12px; font-weight: 600; color: var(--soft); background: var(--surface-2); padding: 7px 11px; border-radius: 999px; }
@@ -103,7 +107,7 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 @keyframes inF { from { opacity: 0; } }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+  position: fixed; left: 50%; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); z-index: 20;
   transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
   transition: transform .5s var(--ease), opacity .4s var(--ease-soft);
   background: var(--surface); color: var(--fg); border-radius: 16px; padding: 12px 14px 12px 18px;
@@ -129,7 +133,7 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .ico { width: 42px; height: 42px; border-radius: 14px; background: var(--accent-tint); color: var(--accent-ink); display: grid; place-items: center; align-self: start; }
 .ico.lec { background: var(--lec-tint); color: var(--lec); }
 .body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.subj { font-size: 15.5px; font-weight: 600; line-height: 1.28; padding-right: 34px; overflow-wrap: anywhere; }
+.subj { font-size: 15.5px; font-weight: 600; line-height: 1.28; padding-right: 30px; overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto; }
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
 .tag { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--accent-tint); color: var(--accent-ink); }
 .tag.lec { background: var(--lec-tint); color: var(--lec); }
@@ -217,7 +221,62 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 
 
 /* переключатели День / Сетка и 1 / 2 неделя */
-.modes { margin-top: 16px; }
+/* нижняя панель разделов */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;
+  display: grid; grid-template-columns: repeat(3, 1fr); max-width: 520px; margin: 0 auto;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: rgba(251, 249, 251, .86); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line);
+}
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0 4px; color: var(--muted); font-size: 11px; font-weight: 600; border-radius: 12px; transition: color .2s var(--ease-soft); }
+.tabbar button svg.i { width: 24px; height: 24px; }
+.tabbar button.on { color: var(--accent-ink); }
+.tabbar button:active { background: var(--surface-2); }
+.typing .tabbar { display: none; }
+
+/* заметки */
+#notesView { padding-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+.nsearch { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 14px; padding: 0 12px; color: var(--muted); }
+.nsearch input { flex: 1; min-width: 0; border: 0; background: none; color: var(--fg); font: inherit; font-size: 16px; padding: 11px 0; outline: none; -webkit-appearance: none; appearance: none; }
+.nsearch input::placeholder { color: var(--muted); }
+.nchips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -20px; padding: 0 20px 2px; }
+.nchips::-webkit-scrollbar { display: none; }
+.nchips button { flex: none; padding: 7px 12px; border-radius: 999px; background: var(--surface-2); color: var(--soft); font-size: 13px; font-weight: 600; transition: background-color .2s var(--ease-soft), color .2s var(--ease-soft); }
+.nchips button.on { background: var(--accent-tint); color: var(--accent-ink); }
+.nlist { display: flex; flex-direction: column; gap: 10px; }
+.note {
+  text-align: left; background: var(--surface); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 5px; min-width: 0; transition: background-color .25s var(--ease-soft);
+}
+.note:active { background: var(--surface-2); }
+.note .nt { font-size: 15.5px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.note .np { font-size: 13px; color: var(--soft); line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.note .nf { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.note .nf .tag { display: inline-flex; align-items: center; gap: 4px; }
+.note .nf .tag svg.i { width: 13px; height: 13px; }
+.nempty { text-align: center; color: var(--muted); padding: 36px 12px 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.nempty .ico { width: 56px; height: 56px; border-radius: 20px; background: var(--lec-tint); color: var(--lec); display: grid; place-items: center; }
+.nempty b { color: var(--fg); font-size: 16px; font-weight: 600; }
+#noteEdit { padding-top: 10px; display: flex; flex-direction: column; gap: 12px; }
+.ntop { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
+.nback { display: inline-flex; align-items: center; gap: 2px; color: var(--accent-ink); font-size: 16px; font-weight: 600; margin-left: -6px; padding: 6px 6px 6px 0; }
+.ndel { color: var(--danger); font-size: 15px; font-weight: 600; padding: 6px 2px; }
+.nsubj { display: flex; align-items: center; gap: 10px; }
+.nsubj span { font-size: 12px; color: var(--muted); font-weight: 500; flex: none; }
+.nsubj select {
+  flex: 1; min-width: 0; background: var(--surface-2); color: var(--fg); border: 0; border-radius: 12px; padding: 10px 34px 10px 12px; font: inherit; font-size: 16px;
+  -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(-45deg, transparent 50%, var(--muted) 50%);
+  background-position: calc(100% - 18px) 52%, calc(100% - 13px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+}
+#ntext {
+  width: 100%; box-sizing: border-box; min-height: 52vh; resize: none; border: 0; outline: none;
+  background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding: 16px; color: var(--fg);
+  font: inherit; font-size: 16px; line-height: 1.5;
+}
+#ntext::placeholder { color: var(--muted); }
+.nmeta { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; }
 .seg2 { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 14px; padding: 3px; }
 .seg2::before {
   content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
@@ -294,10 +353,30 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* узкие экраны (iPhone SE и т.п.) — в конце, чтобы перекрывать основные правила */
+@media (max-width: 374px) {
+  .logo { display: none !important; }
+  .row { grid-template-columns: 40px 1fr; gap: 8px; }
+  .card { padding: 12px 12px 12px 10px; grid-template-columns: 36px 1fr; column-gap: 10px; }
+  .ico { width: 36px; height: 36px; border-radius: 12px; }
+  .subj { font-size: 15px; padding-right: 0; }
+  .card .pair { display: none; }
+  .gap { margin-left: 48px; }
+  .top { gap: 8px; }
+  .brand { gap: 8px; }
+  .logo { width: 32px; height: 32px; border-radius: 11px; }
+  .logo svg { width: 19px; height: 19px; }
+  .brand h1 { font-size: 18px; }
+  #month { font-size: 12px; }
+  .top-r { gap: 8px; }
+  #toToday { font-size: 13px; }
+  #weekChip { padding: 6px 9px; font-size: 11.5px; }
+}
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<div class="app" id="app" lang="ru">
   <div class="top pad">
     <div class="brand">
       <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-5 3 10 3-8 2 3h6"/></svg></div>
@@ -308,9 +387,6 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
       <button id="weekChip" aria-label="Номер недели. Нажми, чтобы поменять, если неверно"></button>
     </div>
   </div>
-  <div class="pad modes"><div class="seg2" id="modeSeg" data-i="0" role="tablist">
-    <button type="button" data-m="day" role="tab">День</button><button type="button" data-m="grid" role="tab">Сетка</button>
-  </div></div>
   <div class="view" id="dayView">
     <nav class="strip" id="strip" aria-label="Дни"></nav>
     <main class="viewport" id="vp"><div class="track" id="track"></div></main>
@@ -322,7 +398,27 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
     <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div><div class="pop" id="pop" role="dialog" aria-live="polite"></div></div>
     <div class="legend"><span><i class="lg lec"></i>Лекция</span><span><i class="lg"></i>Занятие</span><span class="lg-hint">Нажми на пару, чтобы увидеть подробности</span></div>
   </section>
+  <section class="view pad" id="notesView" hidden>
+    <div class="nsearch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input type="search" id="nq" placeholder="Поиск по заметкам" autocomplete="off"></div>
+    <div class="nchips" id="nchips"></div>
+    <div class="nlist" id="nlist"></div>
+    <button type="button" class="add" id="nnew"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Новая заметка</button>
+  </section>
+  <section class="view pad" id="noteEdit" hidden>
+    <div class="ntop">
+      <button type="button" class="nback" id="nback"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>Заметки</button>
+      <button type="button" class="ndel" id="ndel">Удалить</button>
+    </div>
+    <label class="nsubj"><span>Предмет</span><select id="nsubj"></select></label>
+    <textarea id="ntext" placeholder="Что нужно запомнить…" rows="10"></textarea>
+    <div class="nmeta" id="nmeta"></div>
+  </section>
 </div>
+<nav class="tabbar" id="tabbar" role="tablist" aria-label="Разделы">
+  <button type="button" data-m="day" role="tab"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M9 14.5h6"/></svg><span>День</span></button>
+  <button type="button" data-m="grid" role="tab"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg><span>Сетка</span></button>
+  <button type="button" data-m="notes" role="tab"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h8.5L19 7v13.5H7z"/><path d="M15.5 3.5V7H19M10 11h6M10 14.5h6M10 18h3.5"/><path d="M5 6.5v15h10"/></svg><span>Заметки</span></button>
+</nav>
 <div class="toast" id="toast" role="status"><span id="toastText">Пара удалена</span><button type="button" id="undo">Вернуть</button></div>
 
 <div id="sheetWrap">
@@ -518,6 +614,7 @@ const firstWeek = () => Math.max(0, Math.round(strip.scrollLeft / weekW()));
 const scrollToWeek = (w, smooth) => strip.scrollTo({ left: w * weekW(), behavior: smooth ? "smooth" : "auto" });
 
 function updateHeader() {
+  if (mode === "notes" || mode === "note") return;
   const w = firstWeek();
   const mon = days[Math.min(w * 6, days.length - 6)], thu = addDays(mon, 3);
   $("month").textContent = MONTHS_NOM[thu.getMonth()] + " " + thu.getFullYear();
@@ -668,6 +765,25 @@ function fill(pane, i) {
   const fresh = buildPane(i);
   pane.dataset.i = i;
   pane.replaceChildren(...fresh.childNodes);
+  if (innerWidth < 400) fitWords(pane.querySelectorAll(".subj"), 13);   // на обычных экранах всё влезает и так
+}
+// Длинные названия (Микробиология, Лекарственные…) на узких экранах: если слово не влезает
+// в строку целиком, шрифт чуть уменьшается, чтобы слово не рвалось посередине.
+const _mw = document.createElement("canvas").getContext("2d");
+function fitWords(els, minSize) {
+  els.forEach(el => {
+    el.style.fontSize = "";
+    const cs = getComputedStyle(el);
+    const avail = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (avail <= 0) return;
+    const words = el.textContent.split(/\s+/).filter(Boolean);
+    const base = parseFloat(cs.fontSize);
+    for (let size = base; size >= minSize; size -= .5) {
+      _mw.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+      if (words.every(w => _mw.measureText(w).width <= avail)) { if (size !== base) el.style.fontSize = size + "px"; return; }
+    }
+    el.style.fontSize = minSize + "px";
+  });
 }
 if (!track.children.length) for (let k = 0; k < 3; k++) track.appendChild(buildPane(-1));
 // высота области дня = высота открытого дня (соседние дни не добавляют пустоты внизу)
@@ -1082,19 +1198,140 @@ $("paritySeg").querySelectorAll("button").forEach(b => b.onclick = () => {
 });
 
 // ---------- режим: день / сетка ----------
-let mode = sget("mode") === "grid" ? "grid" : "day";
+let mode = ["grid", "notes"].includes(sget("mode")) ? sget("mode") : "day";
+const VIEWS = { day: "dayView", grid: "gridView", notes: "notesView", note: "noteEdit" };
 function setMode(m, first) {
-  mode = m; sset("mode", m);
-  $("modeSeg").dataset.i = m === "grid" ? 1 : 0;
-  const dv = $("dayView"), gv = $("gridView");
-  dv.hidden = m !== "day"; gv.hidden = m !== "grid";
-  [dv, gv].forEach(v => v.classList.remove("show"));
-  if (!first) { const v = m === "day" ? dv : gv; void v.offsetWidth; v.classList.add("show"); }
+  if (mode === "note" && m !== "note") closeNote();
+  mode = m; if (m !== "note") sset("mode", m);
+  const tab = m === "note" ? "notes" : m;
+  document.querySelectorAll("#tabbar button").forEach(b => { b.classList.toggle("on", b.dataset.m === tab); b.setAttribute("aria-selected", b.dataset.m === tab); });
+  Object.entries(VIEWS).forEach(([k, id]) => { const v = $(id); v.hidden = k !== m; v.classList.remove("show"); });
+  if (!first) { const v = $(VIEWS[m]); void v.offsetWidth; v.classList.add("show"); }
   hidePop();
+  const sched = m === "day" || m === "grid";
+  document.querySelector(".top-r").style.visibility = sched ? "" : "hidden";
+  document.querySelector(".brand h1").textContent = sched ? "Расписание" : "Заметки";
+  if (sched) updateHeader(); else notesHeader();
   if (m === "grid") { gridP = homeParity(); renderGrid(); $("toToday").classList.add("off"); }
-  else { requestAnimationFrame(() => { scrollToWeek(Math.floor(sel / 6), false); updateStrip(); }); }
+  if (m === "day") { requestAnimationFrame(() => { scrollToWeek(Math.floor(sel / 6), false); updateStrip(); fitHeight(); }); }
+  if (m === "notes") renderNotes();
+  if (!first) window.scrollTo(0, 0);
 }
-$("modeSeg").querySelectorAll("button").forEach(b => b.onclick = () => { if (b.dataset.m !== mode) setMode(b.dataset.m); });
+document.querySelectorAll("#tabbar button").forEach(b => b.onclick = () => {
+  if (b.dataset.m === mode || (b.dataset.m === "notes" && mode === "note")) { if (mode === "note") setMode("notes"); else window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  setMode(b.dataset.m);
+});
+
+// ---------- заметки ----------
+// Хранятся на этом телефоне: [{id, text, subj, updated}]. Заголовок — первая строка.
+let notes = [];
+try { const raw = JSON.parse(sget("notes") || "[]"); if (Array.isArray(raw)) notes = raw.filter(n => n && typeof n.text === "string"); } catch (e) {}
+const saveNotes = () => sset("notes", JSON.stringify(notes));
+let nFilter = "", nQuery = "", curNote = null;
+function allSubjects() {
+  const set = new Set();
+  [1, 2].forEach(p => DAYS.forEach((_, wd) => template(p, wd).forEach(x => set.add(x.subj))));
+  Object.values(edits.d).forEach(list => list.forEach(x => set.add(x.subj)));
+  notes.forEach(n => n.subj && set.add(n.subj));
+  return [...set].sort((a, b) => a.localeCompare(b, "ru"));
+}
+function noteDate(ts) {
+  const d = new Date(ts), now = new Date(), hm = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  if (dkey(d) === dkey(now)) return "сегодня, " + hm;
+  if (dkey(d) === dkey(addDays(sod(now), -1))) return "вчера, " + hm;
+  return d.getDate() + " " + MONTHS_GEN[d.getMonth()] + (d.getFullYear() !== now.getFullYear() ? " " + d.getFullYear() : "") + ", " + hm;
+}
+function splitNote(text) {
+  const lines = text.trim().split("\n");
+  return { title: lines[0].trim() || "Без названия", rest: lines.slice(1).join(" ").replace(/\s+/g, " ").trim() };
+}
+function notesHeader() {
+  const n = notes.filter(x => x.text.trim()).length;
+  $("month").textContent = n ? n + " " + plural(n, "заметка", "заметки", "заметок") : "Пока пусто";
+}
+function renderNotes() {
+  notesHeader();
+  const used = [...new Set(notes.map(n => n.subj).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
+  if (nFilter && !used.includes(nFilter)) nFilter = "";
+  $("nchips").hidden = used.length === 0;
+  $("nchips").innerHTML = [`<button type="button" data-s="" class="${nFilter ? "" : "on"}">Все</button>`]
+    .concat(used.map(sj => `<button type="button" data-s="${esc(sj)}" class="${nFilter === sj ? "on" : ""}">${esc(sj)}</button>`)).join("");
+  $("nchips").querySelectorAll("button").forEach(b => b.onclick = () => { nFilter = b.dataset.s; renderNotes(); });
+  const q = nQuery.trim().toLowerCase();
+  const list = notes.filter(n => (!nFilter || n.subj === nFilter) && (!q || n.text.toLowerCase().includes(q) || (n.subj || "").toLowerCase().includes(q)))
+    .sort((a, b) => b.updated - a.updated);
+  const box = $("nlist");
+  if (!notes.length) {
+    box.innerHTML = `<div class="nempty"><span class="ico">${svg("book")}</span><b>Заметок пока нет</b>Записывай домашку, темы к зачёту, что сказал преподаватель</div>`;
+    return;
+  }
+  if (!list.length) { box.innerHTML = `<div class="nempty">Ничего не найдено</div>`; return; }
+  box.innerHTML = list.map(n => {
+    const { title, rest } = splitNote(n.text);
+    return `<button type="button" class="note" data-id="${n.id}">
+      <span class="nt">${esc(title)}</span>${rest ? `<span class="np">${esc(rest)}</span>` : ""}
+      <span class="nf">${n.subj ? `<span class="tag">${svg(iconFor(n.subj))}${esc(n.subj)}</span>` : ""}<span>${noteDate(n.updated)}</span></span>
+    </button>`;
+  }).join("");
+  box.querySelectorAll(".note").forEach(b => b.onclick = () => openNote(b.dataset.id));
+}
+$("nq").addEventListener("input", () => { nQuery = $("nq").value; renderNotes(); });
+$("nnew").onclick = () => openNote(null);
+function openNote(id) {
+  const n = id ? notes.find(x => x.id === id) : null;
+  curNote = n ? n.id : null;
+  const subs = allSubjects();
+  const cur = n ? (n.subj || "") : (nFilter || "");
+  $("nsubj").innerHTML = `<option value="">Без предмета</option>` + subs.map(sj => `<option${sj === cur ? " selected" : ""}>${esc(sj)}</option>`).join("");
+  $("nsubj").value = cur;
+  $("ntext").value = n ? n.text : "";
+  $("nmeta").textContent = n ? "Изменено " + noteDate(n.updated) : "";
+  $("ndel").hidden = !n;
+  setMode("note");
+  if (!n) setTimeout(() => $("ntext").focus(), 60);
+}
+let nSaveTimer = 0;
+function persistNote() {
+  clearTimeout(nSaveTimer);
+  const text = $("ntext").value, subj = $("nsubj").value;
+  if (!curNote) {
+    if (!text.trim()) return;
+    curNote = "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    notes.push({ id: curNote, text, subj, updated: Date.now() });
+    $("ndel").hidden = false;
+  } else {
+    const n = notes.find(x => x.id === curNote);
+    if (!n) return;
+    if (n.text === text && n.subj === subj) return;
+    n.text = text; n.subj = subj; n.updated = Date.now();
+  }
+  if (!saveNotes()) { $("nmeta").textContent = "Не получилось сохранить на этом устройстве"; return; }
+  $("nmeta").textContent = "Сохранено";
+}
+$("ntext").addEventListener("input", () => { clearTimeout(nSaveTimer); nSaveTimer = setTimeout(persistNote, 350); });
+$("nsubj").addEventListener("change", persistNote);
+function closeNote() {
+  persistNote();
+  const n = notes.find(x => x.id === curNote);
+  if (n && !n.text.trim()) { notes = notes.filter(x => x !== n); saveNotes(); }   // пустые заметки не храним
+  curNote = null;
+  if (document.activeElement) document.activeElement.blur();
+}
+$("nback").onclick = () => setMode("notes");
+$("ndel").onclick = () => {
+  persistNote();
+  const snap = JSON.stringify(notes), n = notes.find(x => x.id === curNote);
+  if (!n) { setMode("notes"); return; }
+  notes = notes.filter(x => x !== n); saveNotes(); curNote = null;
+  clearTimeout(nSaveTimer); $("ntext").value = "";   // чтобы при выходе удалённая заметка не сохранилась заново
+  setMode("notes");
+  toast("Заметка удалена", () => { notes = JSON.parse(snap); saveNotes(); renderNotes(); });
+};
+window.addEventListener("pagehide", () => { if (mode === "note") persistNote(); });
+// пока печатаешь, нижняя панель не мешает клавиатуре
+document.addEventListener("focusin", e => { if (e.target.matches("input, textarea, select")) document.body.classList.add("typing"); });
+document.addEventListener("focusout", () => setTimeout(() => { if (!document.activeElement || !document.activeElement.matches("input, textarea, select")) document.body.classList.remove("typing"); }, 50));
+document.addEventListener("visibilitychange", () => { if (document.hidden && mode === "note") persistNote(); });
 
 $("toToday").onclick = () => { scrollToWeek(Math.floor(todayIdx / 6), true); goTo(todayIdx); };
 function setFlip(v) {
