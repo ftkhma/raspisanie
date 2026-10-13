@@ -1,7 +1,7 @@
 // Офлайн-режим расписания.
-// Страница: сначала сеть (чтобы обновления приходили сразу), без сети или при медленной сети — сохранённая копия.
+// Страница: сначала сеть, причём всегда свежая (чтобы обновления приходили сразу), без сети или при медленной сети — сохранённая копия.
 // Иконки и шрифты: из сохранённой копии, в фоне обновляются.
-const CACHE = "raspisanie-v4";
+const CACHE = "raspisanie-v6";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -31,7 +31,8 @@ self.addEventListener("fetch", e => {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
       try {
-        const res = await withTimeout(fetch(req), 3500);
+        // no-cache: всегда спросить у сервера, не изменилась ли страница (иначе браузер до 10 минут берёт старую копию)
+        const res = await withTimeout(fetch(req.url, { cache: "no-cache", credentials: "same-origin" }), 3500);
         if (res.ok) cache.put("./index.html", res.clone());
         return res;
       } catch (err) {
