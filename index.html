@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+<title>Моё расписание</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Расписание">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#fbf9fb">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: soft blush-and-lavender notebook — airy header, tinted date pills, white cards on a faint lilac ground, rose ECG for the running pair */
+:root {
+  --bg: #fbf9fb;
+  --surface: #ffffff;
+  --surface-2: #f4eff4;
+  --line: #ece4ec;
+  --fg: #3a3340;
+  --soft: #6b6273;
+  --muted: #a69dae;
+  --accent: #e0889c;        /* пудрово-розовый */
+  --accent-ink: #c4677e;
+  --accent-tint: #fcecf0;
+  --ring: #f4cbd5;
+  --on-accent: #ffffff;
+  --lec: #8d80cf;           /* лавандовый для лекций */
+  --lec-tint: #f0edfa;
+  --pulse: #e0889c;
+  --danger: #d0626a;
+  --shadow: 0 1px 2px rgba(58, 51, 64, .04), 0 10px 26px -16px rgba(58, 51, 64, .22);
+  --font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --ease: cubic-bezier(.32, .72, 0, 1);
+  --ease-soft: cubic-bezier(.4, 0, .2, 1);
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.4;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+/* приложение, а не текст: долгое нажатие не выделяет и не копирует (кроме полей ввода) */
+html, body, button, .app, .sheet, .pop, .toast { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, select, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+.app { max-width: 520px; margin: 0 auto; padding-block: 16px 48px; display: flex; flex-direction: column; }
+.pad { padding-inline: 20px; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 10px; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* шапка */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.logo { width: 38px; height: 38px; border-radius: 13px; background: var(--accent-tint); color: var(--accent-ink); display: grid; place-items: center; }
+.logo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.brand h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.2px; line-height: 1.15; }
+#month { font-size: 13px; color: var(--muted); font-weight: 500; }
+.top-r { display: flex; align-items: center; gap: 12px; }
+#toToday { color: var(--accent-ink); font-size: 14px; font-weight: 600; transition: opacity .4s var(--ease-soft); }
+#toToday.off { opacity: 0; pointer-events: none; }
+#weekChip { font-size: 12px; font-weight: 600; color: var(--soft); background: var(--surface-2); padding: 7px 11px; border-radius: 999px; }
+
+/* полоса дат */
+.strip {
+  margin-top: 18px; display: grid; grid-auto-flow: column; grid-auto-columns: calc(100% / 6);
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+  padding: 2px 14px 12px; scroll-padding-inline: 14px;
+}
+.strip::-webkit-scrollbar { display: none; }
+.day.mon { scroll-snap-align: start; scroll-snap-stop: always; }
+.day { padding: 0 3px; }
+.day .in {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 0 8px; border-radius: 18px;
+  transition: background-color .2s var(--ease-soft);
+}
+.day .w { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; transition: color .2s var(--ease-soft); }
+.day .n { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; transition: color .2s var(--ease-soft); }
+.day .mark { width: 4px; height: 4px; border-radius: 50%; background: var(--ring); }
+.day .mark.none { opacity: 0; }
+.day.today .n, .day.today .w { color: var(--accent-ink); }
+.day.sel .in { background: var(--accent-tint); }
+.day.sel .n, .day.sel .w { color: var(--accent-ink); }
+.day.sel .mark { background: var(--accent); }
+
+/* страницы дней */
+.viewport { overflow: hidden; touch-action: pan-y; }
+.track { display: flex; align-items: flex-start; width: 300%; transform: translate3d(-33.3333%, 0, 0); will-change: transform; }
+
+.pane { width: 33.3333%; box-sizing: border-box; padding: 0 20px 24px; min-height: 62vh; }
+.dayhead { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.dayTitle { font-size: 17px; font-weight: 600; }
+.dayCount { font-size: 12px; color: var(--muted); font-weight: 500; }
+.items { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; }
+.items.fade > * { animation: inF .22s var(--ease-soft) both; }
+@keyframes inF { from { opacity: 0; } }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  transition: transform .5s var(--ease), opacity .4s var(--ease-soft);
+  background: var(--surface); color: var(--fg); border-radius: 16px; padding: 12px 14px 12px 18px;
+  display: flex; align-items: center; gap: 16px; font-size: 14px; font-weight: 500; white-space: nowrap;
+  box-shadow: 0 0 0 1px var(--line), 0 14px 34px -14px rgba(58, 51, 64, .3);
+}
+.toast.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+.toast button { color: var(--accent-ink); font-weight: 700; padding: 2px 4px; }
+
+.row { display: grid; grid-template-columns: 44px 1fr; gap: 10px; }
+.times { display: flex; flex-direction: column; justify-content: space-between; padding-block: 16px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.times .st { color: var(--fg); font-weight: 600; }
+.times .end { color: var(--muted); }
+.card {
+  text-align: left; background: var(--surface); border-radius: 20px; padding: 14px 14px 14px 12px; min-width: 0;
+  display: grid; grid-template-columns: 42px 1fr; column-gap: 12px; row-gap: 8px; align-items: center;
+  box-shadow: var(--shadow); position: relative;
+  transition: background-color .35s var(--ease-soft), opacity .35s var(--ease-soft);
+}
+.card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.card.holding { background: var(--surface-2); transform: scale(.985); transition: background-color .48s linear, transform .48s var(--ease-soft); }
+.holdhint { font-size: 12px; color: var(--muted); text-align: center; padding: 6px 12px 0; }
+.ico { width: 42px; height: 42px; border-radius: 14px; background: var(--accent-tint); color: var(--accent-ink); display: grid; place-items: center; align-self: start; }
+.ico.lec { background: var(--lec-tint); color: var(--lec); }
+.body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.subj { font-size: 15.5px; font-weight: 600; line-height: 1.28; padding-right: 34px; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
+.tag { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--accent-tint); color: var(--accent-ink); }
+.tag.lec { background: var(--lec-tint); color: var(--lec); }
+.meta .room { color: var(--soft); font-variant-numeric: tabular-nums; }
+.pair { position: absolute; right: 14px; top: 14px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.card.past { opacity: .55; }
+.card.now { box-shadow: 0 0 0 1.5px var(--ring), var(--shadow); }
+
+/* ЭКГ для текущей пары */
+.ecgwrap { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.ecgtext { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--accent-ink); }
+.ecgtext span:last-child { font-weight: 500; color: var(--muted); }
+.ecg { position: relative; height: 22px; overflow: hidden; }
+.ecg svg { position: absolute; left: 0; top: 0; height: 22px; width: 900px; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ecg .bg { stroke: var(--line); }
+.ecg .on { position: absolute; inset: 0 auto 0 0; overflow: hidden; }
+.ecg .on svg { stroke: var(--pulse); }
+.ecg .dot { position: absolute; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--pulse); animation: beat 2.4s ease-in-out infinite; }
+@keyframes beat { 0%, 100% { box-shadow: 0 0 0 0 rgba(224, 136, 156, .45); } 50% { box-shadow: 0 0 0 6px rgba(224, 136, 156, 0); } }
+.soon { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--lec); }
+
+.gap { margin-left: 54px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; padding-block: 2px; }
+.gap svg.i { width: 15px; height: 15px; }
+.gap::after { content: ""; flex: 1; border-top: 1px dashed var(--line); }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--muted); padding: 40px 0 18px; text-align: center; }
+.empty .ico { width: 56px; height: 56px; border-radius: 20px; align-self: center; background: var(--lec-tint); color: var(--lec); }
+.empty b { color: var(--fg); font-size: 16px; font-weight: 600; }
+
+.actions { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; }
+.add {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 16px;
+  border-radius: 18px; border: 1.5px dashed var(--line); color: var(--accent-ink); font-weight: 600; font-size: 14px;
+  transition: background-color .35s var(--ease-soft);
+}
+.add:active { background: var(--accent-tint); }
+.reset { color: var(--muted); font-size: 12.5px; padding: 8px 10px; }
+
+/* шторка */
+.scrim { position: fixed; inset: 0; background: rgba(58, 51, 64, .22); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .3s var(--ease-soft); }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-width: 520px; margin: 0 auto;
+  background: var(--surface); border-radius: 26px 26px 0 0;
+  padding: 8px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 16px; max-height: 92vh; overflow-y: auto;
+  transform: translateY(105%); transition: transform .38s var(--ease), visibility 0s linear .38s; visibility: hidden;
+  box-shadow: 0 -12px 40px -22px rgba(58, 51, 64, .35);
+}
+.open .scrim { opacity: 1; pointer-events: auto; }
+.open .sheet { transform: none; visibility: visible; transition: transform .38s var(--ease), visibility 0s; }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); align-self: center; margin-bottom: 2px; }
+.sheet-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.sheet-top h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.sheet-top button { justify-self: start; font-size: 15px; color: var(--muted); padding: 4px 0; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field > span { font-size: 12px; color: var(--muted); padding-left: 2px; font-weight: 500; }
+.sheet input[type=text], .sheet input[type=time], .sheet select {
+  background: var(--surface-2); color: var(--fg); border: 0; border-radius: 14px; appearance: none; -webkit-appearance: none;
+  padding: 12px 14px; font: inherit; font-size: 16px; width: 100%; box-sizing: border-box; min-width: 0;
+}
+.sheet select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(-45deg, transparent 50%, var(--muted) 50%);
+  background-position: calc(100% - 20px) 52%, calc(100% - 15px) 52%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 36px;
+}
+.sheet input::placeholder { color: var(--muted); }
+.icons { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-inline: -20px; padding: 2px 20px 4px; }
+.icons::-webkit-scrollbar { display: none; }
+.icons button {
+  flex: none; width: 46px; height: 46px; border-radius: 14px; background: var(--surface-2); color: var(--soft);
+  display: grid; place-items: center; transition: background-color .2s var(--ease-soft), color .2s var(--ease-soft), box-shadow .2s var(--ease-soft);
+}
+.icons button.auto { width: auto; padding: 0 13px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.icons button.on { background: var(--accent-tint); color: var(--accent-ink); box-shadow: inset 0 0 0 1.5px var(--ring); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 14px; padding: 3px; gap: 3px; }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; }
+.seg span { display: block; text-align: center; padding: 9px 6px; border-radius: 11px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: background-color .35s var(--ease-soft), color .35s var(--ease-soft); }
+.seg input:checked + span { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(58, 51, 64, .1); }
+.seg input:focus-visible + span { outline: 2px solid var(--ring); }
+.err { color: var(--danger); font-size: 13px; font-weight: 500; }
+.err:empty { display: none; }
+.save { background: var(--accent); color: var(--on-accent); border-radius: 16px; padding: 15px; font-size: 16px; font-weight: 600; transition: opacity .3s var(--ease-soft); }
+.save:active { opacity: .85; }
+.del { color: var(--danger); font-size: 14px; font-weight: 600; padding: 4px; align-self: center; }
+
+
+/* переключатели День / Сетка и 1 / 2 неделя */
+.modes { margin-top: 16px; }
+.seg2 { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border-radius: 14px; padding: 3px; }
+.seg2::before {
+  content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
+  background: var(--surface); border-radius: 11px; box-shadow: 0 1px 3px rgba(58, 51, 64, .1);
+  transition: transform .3s var(--ease);
+}
+.seg2[data-i="1"]::before { transform: translateX(100%); }
+.seg2 button { position: relative; z-index: 1; padding: 9px 6px; font-size: 14px; font-weight: 600; color: var(--muted); transition: color .4s var(--ease-soft); }
+.seg2[data-i="0"] button:first-child, .seg2[data-i="1"] button:last-child { color: var(--fg); }
+.seg2.small button { padding: 7px 6px; font-size: 13px; }
+.view.show { animation: inF .22s var(--ease-soft) both; }
+
+/* сетка недели */
+#gridView { padding-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.gridwrap { position: relative; overflow-x: auto; margin-inline: -4px; padding: 2px 4px 4px; }
+.grid .gc.picked { box-shadow: inset 0 0 0 1.5px var(--accent-ink); }
+.pop {
+  position: absolute; z-index: 5; width: 236px; box-sizing: border-box; padding: 12px 14px; border-radius: 16px;
+  background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 14px 34px -14px rgba(58, 51, 64, .35);
+  display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(4px) scale(.98); pointer-events: none;
+  transition: opacity .25s var(--ease-soft), transform .35s var(--ease);
+}
+.pop.show { opacity: 1; transform: none; pointer-events: auto; }
+.pop .pi { display: flex; flex-direction: column; gap: 5px; }
+.pop .pi + .pi { padding-top: 10px; border-top: 1px solid var(--line); }
+.pop .phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.pop .pt { font-size: 14px; font-weight: 600; line-height: 1.3; min-width: 0; }
+.pop .copy {
+  flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px 4px 6px; margin: -2px -4px 0 0;
+  border-radius: 999px; background: var(--surface-2); color: var(--soft); font-size: 11.5px; font-weight: 600;
+  transition: background-color .2s var(--ease-soft), color .2s var(--ease-soft);
+}
+.pop .copy svg.i { width: 14px; height: 14px; }
+.pop .copy.done { background: var(--accent-tint); color: var(--accent-ink); }
+.pop .pm { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 12.5px; color: var(--soft); }
+.pop .pw { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: 40px repeat(6, minmax(46px, 1fr)); gap: 4px; min-width: 320px; }
+.grid.fade { animation: inF .22s var(--ease-soft) both; }
+.gh { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; padding: 4px 0 6px; }
+.gh.today { color: var(--accent-ink); }
+.gt { display: flex; flex-direction: column; justify-content: center; gap: 2px; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--soft); line-height: 1.2; }
+.gt span:last-child { color: var(--muted); }
+.gc {
+  min-height: 66px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
+  padding: 6px 4px 6px 5px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; text-align: left; min-width: 0;
+  transition: background-color .35s var(--ease-soft);
+}
+.gc.empty-cell { background: transparent; box-shadow: inset 0 0 0 1px var(--line); opacity: .55; }
+.gc.zan { background: var(--accent-tint); box-shadow: none; }
+.gc.lec { background: var(--lec-tint); box-shadow: none; }
+.gc.now { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.gc .gn { font-size: 10px; font-weight: 700; line-height: 1.22; letter-spacing: -.2px; hyphens: manual; -webkit-hyphens: manual; overflow-wrap: break-word; }
+.gc.zan .gn { color: var(--accent-ink); }
+.gc.lec .gn { color: var(--lec); }
+.gc .gr { font-size: 10px; color: var(--soft); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.gc .more { font-size: 9.5px; color: var(--muted); }
+.gc:active { filter: brightness(.97); }
+.gh b { display: block; font-size: 13px; font-weight: 700; color: var(--fg); letter-spacing: 0; text-transform: none; margin-top: 1px; }
+.gh.today b { color: var(--accent-ink); }
+.grid .gc.multi { background: transparent; box-shadow: none; padding: 0; gap: 3px; justify-content: stretch; }
+.grid .gc.multi.now { box-shadow: inset 0 0 0 1.5px var(--accent); border-radius: 12px; padding: 2px; }
+.gb { flex: 1; border-radius: 9px; padding: 4px 4px 4px 5px; display: flex; flex-direction: column; justify-content: center; min-height: 0; position: relative; }
+.gb.zan { background: var(--accent-tint); } .gb.lec { background: var(--lec-tint); }
+.gb.zan .gn { color: var(--accent-ink); } .gb.lec .gn { color: var(--lec); }
+.gb .gn { font-size: 9.5px; font-weight: 700; line-height: 1.15; hyphens: manual; -webkit-hyphens: manual; overflow-wrap: break-word; }
+.gb .more { position: absolute; right: 4px; bottom: 3px; font-size: 9px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lg { width: 10px; height: 10px; border-radius: 3px; background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--ring); }
+.lg.lec { background: var(--lec-tint); box-shadow: inset 0 0 0 1px #d9d2f3; }
+.lg-hint { width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="top pad">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-5 3 10 3-8 2 3h6"/></svg></div>
+      <div><h1>Расписание</h1><div id="month">Октябрь</div></div>
+    </div>
+    <div class="top-r">
+      <button id="toToday" class="off">Сегодня</button>
+      <button id="weekChip" aria-label="Номер недели. Нажми, чтобы поменять, если неверно"></button>
+    </div>
+  </div>
+  <div class="pad modes"><div class="seg2" id="modeSeg" data-i="0" role="tablist">
+    <button type="button" data-m="day" role="tab">День</button><button type="button" data-m="grid" role="tab">Сетка</button>
+  </div></div>
+  <div class="view" id="dayView">
+    <nav class="strip" id="strip" aria-label="Дни"></nav>
+    <main class="viewport" id="vp"><div class="track" id="track"></div></main>
+  </div>
+  <section class="view pad" id="gridView" hidden>
+    <div class="seg2 small" id="paritySeg" data-i="0">
+      <button type="button" data-p="1">1 неделя</button><button type="button" data-p="2">2 неделя</button>
+    </div>
+    <div class="gridwrap" id="gridwrap"><div class="grid" id="grid"></div><div class="pop" id="pop" role="dialog" aria-live="polite"></div></div>
+    <div class="legend"><span><i class="lg lec"></i>Лекция</span><span><i class="lg"></i>Занятие</span><span class="lg-hint">Нажми на пару, чтобы увидеть подробности</span></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"><span id="toastText">Пара удалена</span><button type="button" id="undo">Вернуть</button></div>
+
+<div id="sheetWrap">
+  <div class="scrim" id="scrim"></div>
+  <form class="sheet" id="sheet" autocomplete="off" aria-hidden="true">
+    <div class="grab"></div>
+    <div class="sheet-top">
+      <button type="button" id="cancel">Отмена</button>
+      <h2 id="sheetTitle">Новая пара</h2>
+      <span></span>
+    </div>
+    <label class="field"><span>Предмет</span><input type="text" id="fSubj" placeholder="Например, Анатомия"></label>
+    <div class="field"><span>Иконка</span><div class="icons" id="fIcons" role="radiogroup" aria-label="Иконка"></div></div>
+    <div class="two">
+      <label class="field"><span>Тип</span>
+        <select id="fKind">
+          <option>Лекция</option><option>Занятие</option><option>Семинар</option>
+          <option>Лабораторная</option><option>Консультация</option><option>Зачёт</option><option>Экзамен</option><option>Другое</option>
+        </select>
+      </label>
+      <label class="field"><span>Аудитория</span><input type="text" id="fRoom" placeholder="Г4-01"></label>
+    </div>
+    <label class="field"><span>Время</span>
+      <select id="fPair">
+        <option value="1-2">1–2 пара · 9:00–10:10</option>
+        <option value="3-4">3–4 пара · 10:20–11:30</option>
+        <option value="5-6">5–6 пара · 11:40–12:50</option>
+        <option value="7-8">7–8 пара · 13:30–14:40</option>
+        <option value="9-10">9–10 пара · 14:50–16:00</option>
+        <option value="11-12">11–12 пара · 16:10–17:20</option>
+        <option value="custom">Своё время</option>
+      </select>
+    </label>
+    <div class="two" id="customTime" hidden>
+      <label class="field"><span>Начало</span><input type="time" id="fStart"></label>
+      <label class="field"><span>Конец</span><input type="time" id="fEnd"></label>
+    </div>
+    <div class="field"><span>Применить</span>
+      <div class="seg">
+        <label><input type="radio" name="scope" id="scopeT" value="t" checked><span id="scopeTLabel">Каждую неделю</span></label>
+        <label><input type="radio" name="scope" id="scopeD" value="d"><span id="scopeDLabel">Только в этот день</span></label>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+    <button type="submit" class="save">Сохранить</button>
+    <button type="button" class="del" id="del" hidden>Удалить пару</button>
+  </form>
+</div>
+
+<script>
+const SLOTS = {
+  "1-2": ["9:00", "10:10"], "3-4": ["10:20", "11:30"], "5-6": ["11:40", "12:50"],
+  "7-8": ["13:30", "14:40"], "9-10": ["14:50", "16:00"], "11-12": ["16:10", "17:20"]
+};
+const L = "Лекция", Z = "Занятие";
+// исходное расписание: [пара, предмет, тип, аудитория]
+const BASE = {
+  1: [
+    [["3-4","Физкультура (юноши)",Z,""], ["7-8","Гистология",L,"Б1-4"], ["9-10","Гигиена",Z,"А4-02"]],
+    [["3-4","Физкультура (девушки)",Z,""], ["5-6","Медицина катастроф",L,"Б4-07"], ["7-8","Биохимия",L,"Г4-01"], ["9-10","Микробиология",Z,"А2-06"]],
+    [["3-4","Общий уход",Z,""], ["7-8","Психология",L,"Б2-01"], ["9-10","Материаловедение",Z,"В4-10"]],
+    [["5-6","Нормальная физиология",Z,"В3-10"], ["7-8","Лекарственные растения",Z,""], ["9-10","БЖД",Z,"А3-02"]],
+    [["3-4","Психология",Z,""], ["5-6","Микробиология",L,"Б3-01"], ["7-8","Биохимия",Z,"Г3-01"], ["9-10","ППКС",Z,"В4-02"]],
+    [["3-4","Гистология",Z,"В2-01"], ["7-8","Философия",L,"Б4-07"]]
+  ],
+  2: [
+    [["3-4","Физкультура (юноши)",Z,""], ["7-8","ППКС",L,"Г4-01"], ["9-10","Философия",Z,""]],
+    [["3-4","Физкультура (девушки)",Z,""], ["5-6","Микробиология",L,"Г4-01"], ["7-8","Материаловедение",L,"Б4-07"]],
+    [["3-4","Общий уход",Z,""], ["5-6","Микробиология",Z,"А2-06"], ["7-8","Лекарственные растения",L,"Б3-01"], ["9-10","Материаловедение",Z,"В4-10"], ["11-12","Гигиена",Z,"А4-03"]],
+    [["5-6","Нормальная физиология",Z,"В3-10"]],
+    [["3-4","Психология",Z,""], ["5-6","Гигиена",L,"Г4-01"]],
+    [["3-4","Гистология",Z,"В2-01"], ["7-8","Нормальная физиология",L,"Б3-01"]]
+  ]
+};
+const DAYS = ["пн","вт","ср","чт","пт","сб"];
+const DAYS_FULL = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+const MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const ANCHOR = new Date(2026, 7, 31); // понедельник, с которого считается 1 неделя
+const WEEKS_BACK = 10, WEEKS_FWD = 30;
+
+// ---------- иконки предметов ----------
+const ICONS = {
+  microscope: '<path d="M6 21h12M9 21a6 6 0 0 1 3-11.2"/><path d="M10.5 3.5l4 2-3.5 7-4-2z"/><path d="M14 9.5a5 5 0 0 1 1.5 9"/><path d="M8 17h6"/>',
+  flask: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6A2 2 0 0 0 19 18l-5-9V3"/><path d="M7.5 14h9"/>',
+  petri: '<circle cx="12" cy="12" r="8.5"/><circle cx="9.5" cy="10" r="1.6"/><circle cx="14.5" cy="13.5" r="2"/><circle cx="10" cy="15" r=".9"/><circle cx="15" cy="8.5" r=".9"/>',
+  heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M7 11.5h2.5l1.2-2 1.8 4 1.3-2H17"/>',
+  brain: '<path d="M12 5.5A3 3 0 0 0 6.6 7a3 3 0 0 0-1.4 5 3 3 0 0 0 1.6 4.8A3 3 0 0 0 12 18.5z"/><path d="M12 5.5A3 3 0 0 1 17.4 7a3 3 0 0 1 1.4 5 3 3 0 0 1-1.6 4.8A3 3 0 0 1 12 18.5z"/><path d="M12 5.5v13"/>',
+  leaf: '<path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14z"/><path d="M5 19l8-8"/>',
+  drop: '<path d="M12 3.5s6 6.3 6 10.8a6 6 0 0 1-12 0C6 9.8 12 3.5 12 3.5z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>',
+  aid: '<rect x="3.5" y="6.5" width="17" height="13" rx="3"/><path d="M9 6.5V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v1.5M12 10v6M9 13h6"/>',
+  dumbbell: '<path d="M4 9.5v5M7 7.5v9M17 7.5v9M20 9.5v5M7 12h10"/>',
+  bandage: '<path d="M5.2 14.3l9.1-9.1a3.5 3.5 0 0 1 5 5l-9.1 9.1a3.5 3.5 0 0 1-5-5z"/><path d="M9.5 9.5l5 5"/><circle cx="11" cy="12" r=".4"/><circle cx="12.5" cy="10.5" r=".4"/><circle cx="12.5" cy="13.5" r=".4"/><circle cx="14" cy="12" r=".4"/>',
+  tooth: '<path d="M7.5 3.5c-2 0-3.5 1.8-3.5 4.3 0 3 1.8 4.3 2 7.2.2 3 1 5.5 2.3 5.5 1.6 0 1.6-4.5 3.7-4.5s2.1 4.5 3.7 4.5c1.3 0 2.1-2.5 2.3-5.5.2-2.9 2-4.2 2-7.2 0-2.5-1.5-4.3-3.5-4.3-1.8 0-2.6 1-4.5 1s-2.7-1-4.5-1z"/>',
+  shield: '<path d="M12 3l7 3v5.2c0 4.6-3 7.9-7 9.8-4-1.9-7-5.2-7-9.8V6z"/><path d="M12 9v5M9.5 11.5h5"/>',
+  steth: '<path d="M6 3.5v5.5a4 4 0 0 0 8 0V3.5"/><path d="M10 13v2a5 5 0 0 0 10 0v-2.5"/><circle cx="20" cy="10.5" r="2"/>',
+  book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5V5.5M8.5 7.5h7"/>',
+  pill: '<path d="M10.6 3.6a5 5 0 0 1 7 7l-7 7a5 5 0 0 1-7-7z"/><path d="M7 7l7 7"/>',
+  syringe: '<path d="M17.5 3.5l3 3M16 5l3 3"/><path d="M19 8L8.5 18.5H5.5v-3L16 5"/><path d="M11 10l1.5 1.5M8.5 12.5L10 14M3.5 20.5l2-2"/>',
+  dna: '<path d="M7 3c0 5 10 5 10 9s-10 4-10 9"/><path d="M17 3c0 5-10 5-10 9s10 4 10 9"/><path d="M9 6.5h6M9 17.5h6"/>',
+  bone: '<path d="M8 16l8-8"/><circle cx="5.9" cy="15.6" r="2"/><circle cx="8.4" cy="18.1" r="2"/><circle cx="15.6" cy="5.9" r="2"/><circle cx="18.1" cy="8.4" r="2"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  lungs: '<path d="M12 4v8M12 12l-2.5 2M12 12l2.5 2"/><path d="M8.5 7.5C6 7.5 4 11 4 15.5c0 2.2 1.2 3.5 3 3.5 2 0 3-1.3 3-3.5V9a1.5 1.5 0 0 0-1.5-1.5zM15.5 7.5C18 7.5 20 11 20 15.5c0 2.2-1.2 3.5-3 3.5-2 0-3-1.3-3-3.5V9a1.5 1.5 0 0 1 1.5-1.5z"/>',
+  thermo: '<path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>',
+  calc: '<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/>',
+  star: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  cup: '<path d="M5 9h11v4.5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16M9 3.5v2.5M12.5 3.5v2.5"/>',
+  moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  copy: '<rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5V6.5A2 2 0 0 0 13.5 4.5h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+};
+const RULES = [
+  [/гистолог|цитолог/, "microscope"], [/биохим|химия|фармаколог/, "flask"], [/микробиол|вирусол|иммун/, "petri"],
+  [/физиолог|кардио|терап/, "heart"], [/психол|неврол|психиатр/, "brain"], [/растени|ботан|фитотер/, "leaf"],
+  [/гигиен|санитар/, "drop"], [/катастроф|первая помощ|неотлож|скорая/, "aid"], [/физкульт|физра|спорт/, "dumbbell"],
+  [/уход|сестрин|манипул/, "bandage"], [/материалов|стомат|зуб/, "tooth"], [/бжд|безопасн/, "shield"],
+  [/философ|истори|право|язык/, "book"], [/ппкс|пропедевт|диагност|анатом/, "steth"]
+];
+const svg = (name, cls = "i") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+const iconFor = subj => { const s = subj.toLowerCase(); const r = RULES.find(([re]) => re.test(s)); return r ? r[1] : "pill"; };
+const isLecture = kind => /лекц/i.test(kind);
+
+// ЭКГ-кривая: удары каждые 60px
+const BEAT = "h18 l3 -3 l3 3 h4 l3 -12 l4 20 l3 -8 h6 l3 -2 l3 2 h10";
+const ECG_PATH = "M0 13 " + Array(15).fill(BEAT).join(" ");
+
+// ---------- хранилище (на этом телефоне) ----------
+function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function sset(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+let flip = sget("flip") === "1";
+let edits = { t: {}, d: {} };
+try { const raw = JSON.parse(sget("edits") || "null"); if (raw && raw.t && raw.d) edits = raw; } catch (e) {}
+const saveEdits = () => sset("edits", JSON.stringify(edits));
+
+// ---------- даты ----------
+const DAY_MS = 86400000;
+const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const mondayOf = d => addDays(sod(d), -((d.getDay() + 6) % 7));
+const dkey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function parityOf(monday) {
+  const idx = Math.round((monday - ANCHOR) / (7 * DAY_MS));
+  const p = ((idx % 2) + 2) % 2 === 0 ? 1 : 2;
+  return flip ? 3 - p : p;
+}
+const mins = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const fmtDur = m => [Math.floor(m / 60) ? Math.floor(m / 60) + " ч" : "", m % 60 ? m % 60 + " мин" : ""].join(" ").trim();
+const hhmm = t => { const [h, m] = t.split(":"); return String(+h) + ":" + m; };
+const pad5 = t => hhmm(t).padStart(5, "0");
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------- данные дня ----------
+function baseTemplate(p, wd) {
+  return BASE[p][wd].map(([pair, subj, kind, room], i) =>
+    ({ id: `b${p}${wd}${i}`, s: SLOTS[pair][0], e: SLOTS[pair][1], subj, kind, room }));
+}
+const tkey = (p, wd) => p + "-" + wd;
+const template = (p, wd) => edits.t[tkey(p, wd)] || baseTemplate(p, wd);
+function lessonsFor(date) {
+  const wd = (date.getDay() + 6) % 7;
+  const list = edits.d[dkey(date)] || template(parityOf(mondayOf(date)), wd);
+  return list.slice().sort((a, b) => mins(a.s) - mins(b.s));
+}
+const pairOf = (s, e) => Object.keys(SLOTS).find(k => SLOTS[k][0] === hhmm(s) && SLOTS[k][1] === hhmm(e));
+
+// ---------- полоса дат ----------
+const now0 = new Date();
+let homeMon = mondayOf(now0), homeIdx = (now0.getDay() + 6) % 7;
+if (homeIdx === 6) { homeMon = addDays(homeMon, 7); homeIdx = 0; }
+const startMon = addDays(homeMon, -7 * WEEKS_BACK);
+const days = [];
+for (let w = 0; w < WEEKS_BACK + WEEKS_FWD; w++) for (let i = 0; i < 6; i++) days.push(addDays(startMon, w * 7 + i));
+const todayIdx = WEEKS_BACK * 6 + homeIdx;
+let sel = todayIdx;
+
+const strip = $("strip");
+const btns = days.map((d, i) => {
+  const b = document.createElement("button");
+  b.className = "day" + (i % 6 === 0 ? " mon" : "");
+  b.innerHTML = `<span class="in"><span class="w">${DAYS[i % 6]}</span><span class="n">${d.getDate()}</span><span class="mark"></span></span>`;
+  b.setAttribute("aria-label", `${DAYS_FULL[i % 6]}, ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`);
+  b.onclick = () => goTo(i);
+  strip.appendChild(b);
+  return b;
+});
+const weekW = () => (btns[6].offsetLeft - btns[0].offsetLeft) || 1;
+const firstWeek = () => Math.max(0, Math.round(strip.scrollLeft / weekW()));
+const scrollToWeek = (w, smooth) => strip.scrollTo({ left: w * weekW(), behavior: smooth ? "smooth" : "auto" });
+
+function updateHeader() {
+  const w = firstWeek();
+  const mon = days[Math.min(w * 6, days.length - 6)], thu = addDays(mon, 3);
+  $("month").textContent = MONTHS_NOM[thu.getMonth()] + " " + thu.getFullYear();
+  $("weekChip").textContent = parityOf(mon) + " неделя";
+  $("toToday").classList.toggle("off", mode === "grid" || (w === Math.floor(todayIdx / 6) && sel === todayIdx));
+}
+function updateStrip() {
+  const today = sod(new Date());
+  btns.forEach((b, i) => { b.classList.toggle("sel", i === sel); b.classList.toggle("today", +days[i] === +today); });
+  for (let i = 0; i < days.length; i++) btns[i].lastChild.lastChild.classList.toggle("none", lessonsFor(days[i]).length === 0);
+  updateHeader();
+}
+let raf = 0;
+strip.addEventListener("scroll", () => {
+  if (!raf) raf = requestAnimationFrame(() => { raf = 0; updateHeader(); });
+}, { passive: true });
+
+// ---------- одна страница дня ----------
+function buildPane(i) {
+  const pane = document.createElement("section");
+  pane.className = "pane";
+  pane.dataset.i = i;
+  if (i < 0 || i >= days.length) return pane;
+  const now = new Date(), today = sod(now);
+  const day = days[i];
+  const isToday = +day === +today, isPastDay = day < today;
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  const items = lessonsFor(day);
+
+  pane.innerHTML = `<div class="dayhead"><span class="dayTitle">${(isToday ? "Сегодня" : DAYS_FULL[i % 6]) + ", " + day.getDate() + " " + MONTHS_GEN[day.getMonth()]}</span>
+    <span class="dayCount">${items.length ? items.length + " " + plural(items.length, "пара", "пары", "пар") : ""}</span></div>`;
+  const list = document.createElement("div");
+  list.className = "items";
+  pane.appendChild(list);
+
+  if (!items.length) {
+    list.insertAdjacentHTML("beforeend", `<div class="empty"><span class="ico">${svg("moon")}</span><b>Пар нет</b>Можно отдохнуть и выспаться</div>`);
+  }
+  let prevEnd = null;
+  items.forEach(it => {
+    const sm = mins(it.s), em = mins(it.e);
+    if (prevEnd !== null && sm - prevEnd >= 40) {
+      list.insertAdjacentHTML("beforeend", `<div class="gap">${svg("cup")}${sm - prevEnd > 40 ? "Окно" : "Перерыв"} ${fmtDur(sm - prevEnd)}</div>`);
+    }
+    prevEnd = Math.max(prevEnd ?? 0, em);
+    let state = "";
+    if (isPastDay || (isToday && nowM >= em)) state = "past";
+    else if (isToday && nowM >= sm) state = "now";
+    let extra = "";
+    if (state === "now") {
+      const pct = Math.min(100, Math.max(2, Math.round((nowM - sm) / Math.max(1, em - sm) * 100)));
+      const ecg = `<svg viewBox="0 0 900 22"><path d="${ECG_PATH}"/></svg>`;
+      extra = `<div class="ecgwrap">
+        <div class="ecgtext"><span>Идёт сейчас</span><span>ещё ${fmtDur(em - nowM) || "минута"}</span></div>
+        <div class="ecg">${ecg.replace("<svg", '<svg class="bg"')}<span class="on" style="width:${pct}%">${ecg}</span><span class="dot" style="left:${pct}%"></span></div>
+      </div>`;
+    } else if (isToday && !state && sm - nowM <= 60) {
+      extra = `<div class="soon">Начнётся через ${fmtDur(sm - nowM)}</div>`;
+    }
+    const lec = isLecture(it.kind);
+    const pair = pairOf(it.s, it.e);
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div class="times"><span class="st">${pad5(it.s)}</span><span class="end">${pad5(it.e)}</span></div>
+      <button class="card ${state}" type="button">
+        ${pair ? `<span class="pair">${pair.replace("-", "–")}</span>` : ""}
+        <span class="ico${lec ? " lec" : ""}">${svg(it.icon && ICONS[it.icon] ? it.icon : iconFor(it.subj))}</span>
+        <span class="body">
+          <span class="subj">${esc(it.subj)}</span>
+          <span class="meta"><span class="tag${lec ? " lec" : ""}">${esc(it.kind)}</span>${it.room ? `<span class="room">${esc(it.room)}</span>` : `<span>ауд. не указана</span>`}</span>
+        </span>
+        ${extra}
+      </button>`;
+    attachHold(row.querySelector(".card"), () => { if (i === sel) openSheet(it); });
+    list.appendChild(row);
+  });
+
+  const p = parityOf(mondayOf(day)), wd = i % 6;
+  const changed = edits.d[dkey(day)] || edits.t[tkey(p, wd)];
+  const act = document.createElement("div");
+  act.className = "actions";
+  act.innerHTML = `<button class="add" type="button">${svg("plus")}Добавить пару</button>` +
+    (items.length ? `<span class="holdhint">Подержи палец на паре, чтобы изменить её</span>` : "") +
+    (changed ? `<button class="reset" type="button">Вернуть исходное расписание дня</button>` : "");
+  act.querySelector(".add").onclick = () => { if (!dragged && i === sel) openSheet(null); };
+  const rb = act.querySelector(".reset");
+  if (rb) rb.onclick = () => {
+    const snap = JSON.stringify(edits);
+    delete edits.d[dkey(day)]; delete edits.t[tkey(p, wd)]; saveEdits();
+    render(true); toast("Расписание дня сброшено", snap);
+  };
+  list.appendChild(act);
+  return pane;
+}
+
+// никакого меню «Скопировать» по долгому нажатию, кроме полей ввода
+document.addEventListener("contextmenu", e => { if (!e.target.closest("input, textarea, select")) e.preventDefault(); });
+document.addEventListener("selectstart", e => { if (!e.target.closest || !e.target.closest("input, textarea")) e.preventDefault(); });
+
+// ---------- долгое нажатие на пару = редактирование ----------
+const HOLD_MS = 480;
+function attachHold(el, fire) {
+  let timer = 0, sx = 0, sy = 0;
+  const cancel = () => { clearTimeout(timer); timer = 0; el.classList.remove("holding"); };
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0) return;
+    sx = e.clientX; sy = e.clientY;
+    el.classList.add("holding");
+    timer = setTimeout(() => {
+      timer = 0; el.classList.remove("holding");
+      if (dragged || busy) return;
+      try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
+      fire();
+    }, HOLD_MS);
+  });
+  el.addEventListener("pointermove", e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) cancel(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(t => el.addEventListener(t, cancel));
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  // с клавиатуры (Enter/пробел) открывается сразу
+  el.addEventListener("click", e => { if (e.detail === 0) fire(); });
+}
+
+// ---------- перелистывание дней ----------
+// Три постоянные страницы (вчера / сегодня / завтра). После перехода страницы не пересоздаются,
+// а переставляются и перезаполняются — так палец никогда не «теряется».
+// Один свайп = один день. Новый свайп во время анимации мгновенно завершает предыдущую.
+const track = $("track"), vp = $("vp");
+const SLIDE_MS = 280;
+let busy = false, dragged = false, curX = 0, pending = null, drag = null;
+// ms > 0 — с анимацией этой длительности, иначе мгновенно (без единого кадра перехода)
+const setX = (px, ms) => {
+  curX = px;
+  track.classList.toggle("anim", !!ms);
+  track.style.transition = ms ? `transform ${ms}ms cubic-bezier(.25, .8, .25, 1)` : "none";
+  track.style.transform = `translate3d(calc(-33.3333% + ${px}px), 0, 0)`;
+};
+function fill(pane, i) {
+  const fresh = buildPane(i);
+  pane.dataset.i = i;
+  pane.replaceChildren(...fresh.childNodes);
+}
+if (!track.children.length) for (let k = 0; k < 3; k++) track.appendChild(buildPane(-1));
+function render(fade) {
+  if (busy || drag) return;
+  fill(track.children[0], sel - 1); fill(track.children[1], sel); fill(track.children[2], sel + 1);
+  if (fade) { const it = track.children[1].querySelector(".items"); if (it) it.classList.add("fade"); }
+  setX(0, false);
+  updateStrip();
+}
+function finish(target, dir) {
+  if (pending) { track.removeEventListener("transitionend", pending.end); clearTimeout(pending.timer); pending = null; }
+  busy = false;
+  sel = target;
+  if (dir > 0) track.appendChild(track.firstElementChild);
+  else track.insertBefore(track.lastElementChild, track.firstElementChild);
+  setX(0, false);
+  if (+track.children[0].dataset.i !== sel - 1) fill(track.children[0], sel - 1);
+  if (+track.children[2].dataset.i !== sel + 1) fill(track.children[2], sel + 1);
+  updateStrip();
+  if (Math.floor(sel / 6) !== firstWeek()) scrollToWeek(Math.floor(sel / 6), true);
+}
+function settle() { setX(0, 220); }
+function slide(dir, target) {
+  if (target < 0 || target >= days.length) { settle(); return; }
+  const w = vp.clientWidth;
+  busy = true;
+  const nb = track.children[dir > 0 ? 2 : 0];
+  if (+nb.dataset.i !== target) fill(nb, target);
+  btns.forEach((b, i) => b.classList.toggle("sel", i === target));
+  const to = -dir * w;
+  const ms = Math.round(Math.max(160, SLIDE_MS * Math.abs(to - curX) / w));
+  const end = e => { if (!e || (e.target === track && e.propertyName === "transform")) finish(target, dir); };
+  pending = { target, dir, end, timer: setTimeout(end, ms + 60) };
+  track.addEventListener("transitionend", end);
+  setX(to, ms);
+}
+function goTo(i) {
+  if (pending) finish(pending.target, pending.dir);
+  if (i === sel) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { sel = i; render(); return; }
+  slide(i > sel ? 1 : -1, i);
+}
+
+vp.addEventListener("touchstart", e => {
+  if (e.touches.length > 1) { drag = null; return; }
+  if (pending) finish(pending.target, pending.dir);
+  else if (track.classList.contains("anim")) setX(0, false);
+  drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now(), lock: null, lx: null };
+}, { passive: true });
+vp.addEventListener("touchmove", e => {
+  if (!drag) return;
+  const dx = e.touches[0].clientX - drag.x, dy = e.touches[0].clientY - drag.y;
+  if (drag.lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) drag.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+  if (drag.lock !== "x") return;
+  e.preventDefault();
+  dragged = true;
+  let d = dx;
+  if ((d > 0 && sel === 0) || (d < 0 && sel === days.length - 1)) d *= .3;
+  drag.lx = e.touches[0].clientX;
+  setX(d, false);
+}, { passive: false });
+const endDrag = () => {
+  if (!drag) return;
+  const { t, lock, x, lx } = drag;
+  drag = null;
+  setTimeout(() => { dragged = false; }, 60);
+  if (lock !== "x") { if (curX !== 0) settle(); return; }
+  const dx = (lx ?? x) - x;
+  // любой осознанный свайп (от 40px или быстрый щелчок) — ровно один день
+  const fast = Math.abs(dx) / Math.max(1, performance.now() - t) > .25;
+  if (dx < -40 || (fast && dx < -12)) slide(1, sel + 1);
+  else if (dx > 40 || (fast && dx > 12)) slide(-1, sel - 1);
+  else settle();
+};
+vp.addEventListener("touchend", endDrag);
+vp.addEventListener("touchcancel", endDrag);
+
+// ---------- уведомление с отменой ----------
+let toastTimer = 0, undoSnap = null;
+function toast(text, snap) {
+  undoSnap = snap;
+  $("toastText").textContent = text;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $("toast").classList.remove("show"); undoSnap = null; }, 5000);
+}
+$("undo").onclick = () => {
+  if (undoSnap) { edits = JSON.parse(undoSnap); saveEdits(); render(true); }
+  undoSnap = null; clearTimeout(toastTimer); $("toast").classList.remove("show");
+};
+
+
+// ---------- выбор иконки ----------
+const ICON_CHOICES = ["microscope", "flask", "petri", "heart", "brain", "lungs", "eye", "tooth", "bone", "dna",
+  "steth", "syringe", "pill", "thermo", "bandage", "aid", "drop", "leaf", "shield", "dumbbell", "book", "calc", "star"];
+let pickedIcon = "auto";
+function renderIconPicker() {
+  const box = $("fIcons");
+  const auto = iconFor($("fSubj").value || "");
+  box.innerHTML = `<button type="button" class="auto${pickedIcon === "auto" ? " on" : ""}" data-ic="auto" role="radio" aria-checked="${pickedIcon === "auto"}">${svg(auto)}<span>Авто</span></button>` +
+    ICON_CHOICES.map(n => `<button type="button" data-ic="${n}" role="radio" aria-checked="${pickedIcon === n}" class="${pickedIcon === n ? "on" : ""}">${svg(n)}</button>`).join("");
+  box.querySelectorAll("button").forEach(b => b.onclick = () => {
+    pickedIcon = b.dataset.ic;
+    box.querySelectorAll("button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
+  });
+}
+$("fSubj").addEventListener("input", () => {
+  const a = $("fIcons").querySelector(".auto svg");
+  if (a) a.outerHTML = svg(iconFor($("fSubj").value || ""));
+});
+
+// ---------- редактор ----------
+let editing = null, openedAt = 0;
+function openSheet(item) {
+  editing = item;
+  const day = days[sel], p = parityOf(mondayOf(day));
+  $("sheetTitle").textContent = item ? "Изменить пару" : "Новая пара";
+  $("fSubj").value = item ? item.subj : "";
+  pickedIcon = item && item.icon && ICONS[item.icon] ? item.icon : "auto";
+  renderIconPicker();
+  $("fKind").value = item ? item.kind : "Занятие";
+  if ($("fKind").selectedIndex < 0) $("fKind").value = "Другое";
+  $("fRoom").value = item ? item.room : "";
+  const pair = item ? pairOf(item.s, item.e) : "3-4";
+  $("fPair").value = pair || "custom";
+  $("fStart").value = item ? pad5(item.s) : "";
+  $("fEnd").value = item ? pad5(item.e) : "";
+  $("customTime").hidden = $("fPair").value !== "custom";
+  $("scopeTLabel").textContent = `Каждую ${p}-ю неделю`;
+  $("scopeDLabel").textContent = `Только ${day.getDate()} ${MONTHS_GEN[day.getMonth()]}`;
+  $(placeOf(item) === "d" ? "scopeD" : "scopeT").checked = true;
+  $("del").hidden = !item;
+  $("err").textContent = "";
+  openedAt = performance.now();
+  $("sheetWrap").classList.add("open");
+  $("sheet").setAttribute("aria-hidden", "false");
+}
+function closeSheet() {
+  $("sheetWrap").classList.remove("open");
+  $("sheet").setAttribute("aria-hidden", "true");
+  if (document.activeElement) document.activeElement.blur();
+  editing = null;
+}
+const sheetOpen = () => $("sheetWrap").classList.contains("open");
+$("fPair").onchange = () => { $("customTime").hidden = $("fPair").value !== "custom"; };
+$("cancel").onclick = closeSheet;
+$("scrim").onclick = () => { if (performance.now() - openedAt > 450) closeSheet(); };
+
+let sy = null;
+$("sheet").addEventListener("touchstart", e => { sy = $("sheet").scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+$("sheet").addEventListener("touchend", e => { if (sy !== null && e.changedTouches[0].clientY - sy > 90) closeSheet(); sy = null; });
+
+// «каждую неделю» меняет шаблон и заодно отдельные правки этой даты, чтобы изменение было видно сразу
+// Где «живёт» пара: в постоянном расписании недели или только в одной дате.
+// Переключатель в окне показывает это место; смена переключателя переносит пару.
+function placeOf(item) {
+  if (!item) return "t";
+  const day = days[sel], wd = sel % 6, p = parityOf(mondayOf(day));
+  return template(p, wd).some(x => x.id === item.id) ? "t" : "d";
+}
+function saveLesson(lesson, onlyDate) {
+  const day = days[sel], wd = sel % 6, p = parityOf(mondayOf(day)), k = dkey(day), tk = tkey(p, wd);
+  const upsert = list => { const i = list.findIndex(x => x.id === lesson.id); if (i >= 0) list[i] = lesson; else list.push(lesson); return list; };
+  if (onlyDate) {
+    // зафиксировать этот день отдельно (со всеми его парами), поменять пару только в нём…
+    edits.d[k] = upsert((edits.d[k] || lessonsFor(day)).map(x => ({ ...x })));
+    // …и убрать её из постоянного расписания, если она была там
+    const t = template(p, wd);
+    if (t.some(x => x.id === lesson.id)) edits.t[tk] = t.filter(x => x.id !== lesson.id).map(x => ({ ...x }));
+  } else {
+    edits.t[tk] = upsert(template(p, wd).map(x => ({ ...x })));
+    if (edits.d[k]) edits.d[k] = upsert(edits.d[k].map(x => ({ ...x })));
+  }
+  return saveEdits();
+}
+function removeLesson(id, onlyDate) {
+  const day = days[sel], wd = sel % 6, p = parityOf(mondayOf(day)), k = dkey(day), tk = tkey(p, wd);
+  if (onlyDate) {
+    edits.d[k] = (edits.d[k] || lessonsFor(day)).filter(x => x.id !== id).map(x => ({ ...x }));
+  } else {
+    edits.t[tk] = template(p, wd).filter(x => x.id !== id).map(x => ({ ...x }));
+    if (edits.d[k]) edits.d[k] = edits.d[k].filter(x => x.id !== id);
+  }
+  return saveEdits();
+}
+const showErr = t => { $("err").textContent = t; };
+
+$("sheet").onsubmit = e => {
+  e.preventDefault();
+  const subj = $("fSubj").value.trim();
+  if (!subj) { showErr("Впиши название предмета."); $("fSubj").focus(); return; }
+  let s, en;
+  if ($("fPair").value === "custom") {
+    s = $("fStart").value; en = $("fEnd").value;
+    if (!s || !en) { showErr("Укажи время начала и конца."); return; }
+    if (mins(en) <= mins(s)) { showErr("Конец должен быть позже начала."); return; }
+  } else { [s, en] = SLOTS[$("fPair").value]; }
+  const lesson = { id: editing ? editing.id : "u" + Date.now().toString(36), s: hhmm(s), e: hhmm(en), subj, kind: $("fKind").value, room: $("fRoom").value.trim() };
+  if (pickedIcon !== "auto") lesson.icon = pickedIcon;
+  const ok = saveLesson(lesson, $("scopeD").checked);
+  if (!ok) { showErr("Не получилось сохранить на этом устройстве."); return; }
+  closeSheet(); render(true);
+};
+$("del").onclick = () => {
+  if (!editing) return;
+  const id = editing.id, name = editing.subj;
+  const snap = JSON.stringify(edits);
+  removeLesson(id, $("scopeD").checked);
+  closeSheet(); render(true);
+  toast(`Пара «${name.length > 14 ? name.slice(0, 13) + "…" : name}» удалена`, snap);
+};
+
+
+// ---------- сетка недели ----------
+const SHORT = {
+  "Гистология": "Гисто&shy;логия", "Гигиена": "Гиги&shy;ена", "Физкультура (юноши)": "Физра юн.", "Физкультура (девушки)": "Физра дев.",
+  "Медицина катастроф": "Мед. ката&shy;строф", "Биохимия": "Био&shy;химия", "Микробиология": "Микро&shy;биол.", "Общий уход": "Общий уход",
+  "Психология": "Психо&shy;логия", "Материаловедение": "Мате&shy;риал.", "Нормальная физиология": "Норм. физио&shy;логия",
+  "Лекарственные растения": "Лек. раст.", "БЖД": "БЖД", "ППКС": "ППКС", "Философия": "Фило&shy;софия"
+};
+function shortName(n) {
+  if (SHORT[n]) return SHORT[n];
+  const w = n.split(/\s+/);
+  if (w.length > 1) return esc(w.map(x => x.length > 6 ? x.slice(0, 5) + "." : x).join(" "));
+  return esc(n.length > 7 ? n.slice(0, 6) + "." : n);
+}
+const SLOT_KEYS = Object.keys(SLOTS);
+function slotFor(it) {
+  const p = pairOf(it.s, it.e);
+  if (p) return p;
+  const sm = mins(it.s);
+  let best = SLOT_KEYS[0], d = 1e9;
+  SLOT_KEYS.forEach(k => { const x = Math.abs(mins(SLOTS[k][0]) - sm); if (x < d) { d = x; best = k; } });
+  return best;
+}
+const homeParity = () => parityOf(homeMon);
+let gridP = homeParity();
+// сетка — это постоянное расписание 1-й или 2-й недели: только то, что повторяется каждую такую неделю.
+// Правки «только в этот день» в сетку не попадают, они видны в режиме «День».
+function gridWeekStart() {
+  let w = Math.floor(todayIdx / 6);
+  if (parityOf(days[w * 6]) !== gridP) w += 1;
+  return Math.min(w, days.length / 6 - 1) * 6;
+}
+function renderGrid(fade) {
+  const g = $("grid");
+  const now = new Date(), today = sod(now), nowM = now.getHours() * 60 + now.getMinutes();
+  const ws = gridWeekStart();
+  const dates = DAYS.map((_, wd) => days[ws + wd]);
+  $("paritySeg").dataset.i = gridP - 1;
+  const thisWeek = ws === Math.floor(todayIdx / 6) * 6;
+  let h = `<div></div>` + DAYS.map((d, i) => `<div class="gh${thisWeek && +dates[i] === +today ? " today" : ""}">${d}</div>`).join("");
+  const cols = dates.map(date => {
+    const m = {};
+    template(gridP, (date.getDay() + 6) % 7).forEach(it => { const k = slotFor(it); (m[k] = m[k] || []).push(it); });
+    return m;
+  });
+  SLOT_KEYS.forEach(k => {
+    h += `<div class="gt"><span>${SLOTS[k][0]}</span><span>${SLOTS[k][1]}</span></div>`;
+    DAYS.forEach((_, wd) => {
+      const list = (cols[wd][k] || []).sort((a, b) => mins(a.s) - mins(b.s));
+      if (!list.length) { h += `<button type="button" class="gc empty-cell" data-wd="${wd}" data-k="${k}" aria-label="${DAYS_FULL[wd]}, ${k} пара, пусто"></button>`; return; }
+      const isNow = it => +dates[wd] === +today && nowM >= mins(it.s) && nowM < mins(it.e);
+      if (list.length === 1) {
+        const it = list[0], lec = isLecture(it.kind);
+        h += `<button type="button" class="gc ${lec ? "lec" : "zan"}${isNow(it) ? " now" : ""}" data-wd="${wd}" data-k="${k}" aria-label="${DAYS_FULL[wd]}: ${esc(it.subj)}, ${esc(it.kind)}">
+          <span class="gn">${shortName(it.subj)}</span><span class="gr">${it.room ? esc(it.room) : ""}</span></button>`;
+      } else {
+        // несколько пар в одно время — делим клетку
+        const shown = list.slice(0, 2);
+        h += `<button type="button" class="gc multi${list.some(isNow) ? " now" : ""}" data-wd="${wd}" data-k="${k}" aria-label="${DAYS_FULL[wd]}: ${list.map(x => esc(x.subj)).join(", ")}">` +
+          shown.map((it, j) => `<span class="gb ${isLecture(it.kind) ? "lec" : "zan"}"><span class="gn">${shortName(it.subj)}</span>${j === 1 && list.length > 2 ? `<span class="more">+${list.length - 2}</span>` : ""}</span>`).join("") +
+          `</button>`;
+      }
+    });
+  });
+  g.innerHTML = h;
+  g.classList.remove("fade");
+  if (fade) { void g.offsetWidth; g.classList.add("fade"); }
+  hidePop();
+  g.querySelectorAll(".gc").forEach(c => {
+    const wd = +c.dataset.wd, k = c.dataset.k;
+    c.onclick = e => {
+      e.stopPropagation();
+      const list = (cols[wd][k] || []);
+      if (!list.length || popCell === c) { hidePop(); return; }
+      showPop(c, list.slice().sort((a, b) => mins(a.s) - mins(b.s)));
+    };
+  });
+}
+
+// ---------- подробности пары прямо в сетке ----------
+let popCell = null;
+function showPop(cell, list) {
+  const pop = $("pop"), wrap = $("gridwrap");
+  if (popCell) popCell.classList.remove("picked");
+  popCell = cell; cell.classList.add("picked");
+  const wd = +cell.dataset.wd;
+  pop.innerHTML = list.map((it, n) => {
+    const lec = isLecture(it.kind), pair = pairOf(it.s, it.e);
+    return `<div class="pi"><div class="phead"><div class="pt">${esc(it.subj)}</div>
+        <button type="button" class="copy" data-n="${n}" aria-label="Скопировать информацию о паре">${svg("copy")}<span>Копировать</span></button></div>
+      <div class="pm"><span class="tag${lec ? " lec" : ""}">${esc(it.kind)}</span><span>${it.room ? esc(it.room) : "ауд. не указана"}</span></div>
+      <div class="pw">${hhmm(it.s)}–${hhmm(it.e)}${pair ? " · " + pair.replace("-", "–") + " пара" : ""}</div></div>`;
+  }).join("");
+  pop.querySelectorAll(".copy").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    const it = list[+btn.dataset.n], pair = pairOf(it.s, it.e);
+    const text = [
+      `${it.subj} — ${it.kind}`,
+      `${DAYS_FULL[wd]} (${gridP}-я неделя), ${hhmm(it.s)}–${hhmm(it.e)}${pair ? ", " + pair.replace("-", "–") + " пара" : ""}`,
+      it.room ? `Аудитория: ${it.room}` : "Аудитория не указана"
+    ].join("\n");
+    copyText(text).then(ok => {
+      btn.classList.add("done");
+      btn.innerHTML = ok ? `${svg("check")}<span>Скопировано</span>` : `<span>Не вышло</span>`;
+      clearTimeout(btn._t);
+      btn._t = setTimeout(() => { btn.classList.remove("done"); btn.innerHTML = `${svg("copy")}<span>Копировать</span>`; }, 1600);
+    });
+  });
+  // позиция: под клеткой, а если не помещается — над ней; по горизонтали в пределах сетки
+  const cw = wrap.scrollWidth, ch = wrap.clientHeight;
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = cell.offsetLeft + cell.offsetWidth / 2 - pw / 2;
+  left = Math.max(4, Math.min(cw - pw - 4, left));
+  let top = cell.offsetTop + cell.offsetHeight + 6;
+  if (top + ph > ch) top = Math.max(4, cell.offsetTop - ph - 6);
+  pop.style.left = left + "px"; pop.style.top = top + "px";
+  pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show");
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy"); ta.remove(); return ok;
+  } catch (e) { return false; }
+}
+function hidePop() {
+  const pop = $("pop");
+  if (!pop) return;
+  pop.classList.remove("show");
+  if (popCell) popCell.classList.remove("picked");
+  popCell = null;
+}
+document.addEventListener("click", e => { if (popCell && !e.target.closest("#pop")) hidePop(); });
+
+function openDayFromGrid(wd) {
+  // ближайшая неделя с выбранной чётностью, начиная с текущей
+  let w = Math.floor(todayIdx / 6);
+  if (parityOf(days[w * 6]) !== gridP) w += 1;
+  const i = Math.min(days.length - 1, w * 6 + wd);
+  setMode("day");
+  sel = i; render(true);
+  requestAnimationFrame(() => scrollToWeek(Math.floor(i / 6), false));
+}
+$("paritySeg").querySelectorAll("button").forEach(b => b.onclick = () => {
+  const p = +b.dataset.p; if (p === gridP) return;
+  gridP = p; renderGrid(true);
+});
+
+// ---------- режим: день / сетка ----------
+let mode = sget("mode") === "grid" ? "grid" : "day";
+function setMode(m, first) {
+  mode = m; sset("mode", m);
+  $("modeSeg").dataset.i = m === "grid" ? 1 : 0;
+  const dv = $("dayView"), gv = $("gridView");
+  dv.hidden = m !== "day"; gv.hidden = m !== "grid";
+  [dv, gv].forEach(v => v.classList.remove("show"));
+  if (!first) { const v = m === "day" ? dv : gv; void v.offsetWidth; v.classList.add("show"); }
+  hidePop();
+  if (m === "grid") { gridP = homeParity(); renderGrid(); $("toToday").classList.add("off"); }
+  else { requestAnimationFrame(() => { scrollToWeek(Math.floor(sel / 6), false); updateStrip(); }); }
+}
+$("modeSeg").querySelectorAll("button").forEach(b => b.onclick = () => { if (b.dataset.m !== mode) setMode(b.dataset.m); });
+
+$("toToday").onclick = () => { scrollToWeek(Math.floor(todayIdx / 6), true); goTo(todayIdx); };
+$("weekChip").onclick = () => { flip = !flip; sset("flip", flip ? "1" : "0"); render(true); if (mode === "grid") { gridP = homeParity(); renderGrid(true); } };
+
+render(true);
+setMode(mode, true);
+requestAnimationFrame(() => { scrollToWeek(Math.floor(todayIdx / 6), false); updateStrip(); });
+setInterval(() => { if (!sheetOpen() && !drag) { render(); if (mode === "grid" && !popCell) renderGrid(); } }, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !sheetOpen()) { render(); if (mode === "grid") renderGrid(); } });
+</script>
+</body>
+</html>
