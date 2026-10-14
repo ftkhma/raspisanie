@@ -537,7 +537,7 @@ const DAYS = ["пн","вт","ср","чт","пт","сб"];
 const DAYS_FULL = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-const ANCHOR = new Date(2026, 8, 7); // понедельник 1-й недели (неделя 12–17 октября — 2-я)
+const ANCHOR = new Date(2026, 7, 31); // понедельник 1-й недели (неделя 12–17 октября — 1-я)
 const WEEKS_BACK = 10, WEEKS_FWD = 30;
 
 // ---------- иконки предметов ----------
@@ -591,9 +591,21 @@ const ECG_PATH = "M0 13 " + Array(15).fill(BEAT).join(" ");
 // ---------- хранилище (на этом телефоне) ----------
 function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function sset(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
-let flip = sget("flip-w2") === "1";
+let flip = sget("flip-w3") === "1";
 let edits = { t: {}, d: {} };
 try { const raw = JSON.parse(sget("edits") || "null"); if (raw && raw.t && raw.d) edits = raw; } catch (e) {}
+// Разовый перенос: раньше 1-я и 2-я недели были перепутаны. Правки «каждую N-ю неделю»,
+// сделанные при старой нумерации, переносятся на ту неделю, которую человек на самом деле имел в виду.
+if (!sget("parity-fix-1")) {
+  const wasCorrected = sget("flip-w2") === "1";   // кто сам поправил плашку — у того нумерация уже была верной
+  if (!wasCorrected) {
+    const t = {};
+    Object.entries(edits.t).forEach(([k, v]) => { const [p, wd] = k.split("-"); t[(3 - +p) + "-" + wd] = v; });
+    edits.t = t;
+    sset("edits", JSON.stringify(edits));
+  }
+  sset("parity-fix-1", "1");
+}
 const saveEdits = () => { marksDirty = true; return sset("edits", JSON.stringify(edits)); };
 // заметки: [{id, text, subj, updated, date?, lesson?}] — date+lesson, если заметка к конкретной паре
 let notes = [];
@@ -1447,7 +1459,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && mod
 
 $("toToday").onclick = () => { scrollToWeek(Math.floor(todayIdx / 6), true); goTo(todayIdx); };
 function setFlip(v) {
-  flip = v; sset("flip-w2", flip ? "1" : "0"); marksDirty = true;
+  flip = v; sset("flip-w3", flip ? "1" : "0"); marksDirty = true;
   render(true); if (mode === "grid") { gridP = homeParity(); renderGrid(true); }
 }
 $("weekChip").onclick = () => {
